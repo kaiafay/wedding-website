@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import EnvelopeAnimation from "@/components/rsvp/EnvelopeAnimation";
-import RsvpForm from "@/components/rsvp/RsvpForm";
+import InvitationCard from "@/components/rsvp/InvitationCard";
 
 interface RsvpSectionProps {
   token: string | null;
@@ -19,8 +17,6 @@ export default function RsvpSection({
   tokenUsed,
   guestName,
 }: RsvpSectionProps) {
-  const [envelopeOpen, setEnvelopeOpen] = useState(false);
-
   if (!tokenChecked)
     return (
       <section
@@ -88,41 +84,15 @@ export default function RsvpSection({
                 lineHeight: 1.7,
               }}
             >
-              You've already responded to this invitation. If you need to make a
+              You&apos;ve already responded to this invitation. If you need to make a
               change, please reach out to us directly.
             </p>
           </div>
         )}
 
-        {/* Valid token — show envelope + form */}
+        {/* Valid token — envelope + form */}
         {tokenValid && (
-          <>
-            {!envelopeOpen && (
-              <p
-                className="font-sans"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.4em",
-                  textTransform: "uppercase",
-                  color: "var(--mauve-light)",
-                  textAlign: "center",
-                  marginBottom: 64,
-                }}
-              >
-                Received an invitation? Open it below.
-              </p>
-            )}
-            <EnvelopeAnimation
-              isOpen={envelopeOpen}
-              onOpen={() => setEnvelopeOpen(true)}
-            />
-            {envelopeOpen && (
-              <RsvpForm
-                token={token!}
-                guestName={guestName}
-              />
-            )}
-          </>
+          <InvitationCard token={token!} guestName={guestName} />
         )}
       </div>
     </section>
