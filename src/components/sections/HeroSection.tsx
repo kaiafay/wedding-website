@@ -6,13 +6,14 @@ export default function HeroSection() {
       className="min-h-screen grid"
       style={{
         gridTemplateColumns: "1fr 1fr",
+        gap: "2rem",
         background: "var(--dark)",
       }}
     >
       {/* Photo column */}
       <div className="relative overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1519741497674-611481863552?w=900&q=80"
+          src="/0G5A5201.webp"
           alt="Couple"
           fill
           sizes="50vw"

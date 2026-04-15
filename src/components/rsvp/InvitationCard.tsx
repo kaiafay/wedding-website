@@ -12,7 +12,10 @@ interface InvitationCardProps {
   guestName: string | null;
 }
 
-export default function InvitationCard({ token, guestName }: InvitationCardProps) {
+export default function InvitationCard({
+  token,
+  guestName,
+}: InvitationCardProps) {
   const [stage, setStage] = useState<Stage>("idle");
 
   // Form state
@@ -60,7 +63,8 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
     }
   };
 
-  const envelopeVisible = stage === "idle" || stage === "opening" || stage === "rising";
+  const envelopeVisible =
+    stage === "idle" || stage === "opening" || stage === "rising";
   const cardVisible = stage === "expanding" || stage === "form";
 
   const inputStyle: React.CSSProperties = {
@@ -77,8 +81,9 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-
+    <div
+      style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
       {/* ── ENVELOPE PHASE ── */}
       <AnimatePresence>
         {envelopeVisible && (
@@ -89,7 +94,11 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
             // Envelope is already visually gone (faded) by the time exit fires
             exit={{ opacity: 0, transition: { duration: 0 } }}
             transition={{ duration: 0.5 }}
-            style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
           >
             {/* Hint — above the envelope, only during idle */}
             {stage === "idle" && (
@@ -132,12 +141,17 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                   width: 320,
                   height: 213,
                   overflow: stage === "rising" ? "visible" : "hidden",
+                  perspective: 800,
                 }}
               >
                 {/* Envelope body */}
                 <motion.div
                   animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  transition={{
+                    duration: 0.5,
+                    ease: "easeOut",
+                    delay: stage === "rising" ? 0.3 : 0,
+                  }}
                   style={{
                     position: "absolute",
                     inset: 0,
@@ -164,7 +178,11 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                     context, above the flap (zIndex 5). Fades with the envelope during rising. */}
                 <motion.div
                   animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  transition={{
+                    duration: 0.4,
+                    ease: "easeOut",
+                    delay: stage === "rising" ? 0.2 : 0,
+                  }}
                   style={{
                     position: "absolute",
                     top: 120,
@@ -173,28 +191,35 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                     width: 48,
                     height: 48,
                     borderRadius: "50%",
-                    background: "var(--mauve-dark)",
+                    background:
+                      "radial-gradient(circle at 38% 38%, #8a7290, #6b5f73 60%, #5a4f60)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    boxShadow:
+                      "inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 2px rgba(255,255,255,0.1), 0 2px 10px rgba(0,0,0,0.35)",
+                    border: "1.5px solid rgba(0,0,0,0.15)",
                     zIndex: 6,
                   }}
                 >
                   <span
-                    className="font-script"
-                    style={{ fontSize: 18, color: "rgba(255,255,255,0.85)", marginTop: 2 }}
+                    style={{
+                      fontSize: 22,
+                      color: "rgba(255,255,255,0.8)",
+                      lineHeight: 1,
+                    }}
                   >
-                    &
+                    ⚜
                   </span>
                 </motion.div>
 
                 {/* Mini card — rises out of envelope */}
                 <motion.div
                   animate={stage === "rising" ? { y: -230 } : { y: 0 }}
-                  transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                  transition={{ duration: 1.0, ease: [0.33, 0, 0.2, 1] }}
                   onAnimationComplete={() => {
-                    if (stage === "rising") setStage("expanding");
+                    if (stage === "rising")
+                      setTimeout(() => setStage("expanding"), 350);
                   }}
                   style={{
                     position: "absolute",
@@ -211,13 +236,21 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                 >
                   <p
                     className="font-script"
-                    style={{ fontSize: 22, color: "var(--mauve)", textAlign: "center" }}
+                    style={{
+                      fontSize: 22,
+                      color: "var(--mauve)",
+                      textAlign: "center",
+                    }}
                   >
                     K & R
                   </p>
                   <p
                     className="font-serif italic"
-                    style={{ fontSize: 12, color: "var(--subtle)", textAlign: "center" }}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--subtle)",
+                      textAlign: "center",
+                    }}
                   >
                     July 8, 2027
                   </p>
@@ -229,15 +262,15 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                     stage === "idle"
                       ? { rotateX: 0 }
                       : stage === "rising"
-                      ? { rotateX: -175, opacity: 0 }
-                      : { rotateX: -175 }
+                        ? { rotateX: -175, opacity: 0 }
+                        : { rotateX: -175 }
                   }
                   transition={
                     stage === "opening"
-                      ? { duration: 0.65, ease: [0.4, 0, 0.2, 1] }
+                      ? { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }
                       : stage === "rising"
-                      ? { opacity: { duration: 0.3 } }
-                      : {}
+                        ? { opacity: { duration: 0.4 } }
+                        : {}
                   }
                   onAnimationComplete={() => {
                     if (stage === "opening") setStage("rising");
@@ -253,16 +286,38 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                     zIndex: stage === "idle" || stage === "opening" ? 5 : 0,
                   }}
                 >
+                  {/* Front face */}
                   <svg
                     viewBox="0 0 320 120"
-                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      backfaceVisibility: "hidden",
+                    }}
                   >
                     <polygon points="0,0 320,0 160,120" fill="#E4DDD6" />
+                  </svg>
+                  {/* Back face (inside of flap) */}
+                  <svg
+                    viewBox="0 0 320 120"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      backfaceVisibility: "hidden",
+                      transform: "rotateX(180deg)",
+                    }}
+                  >
+                    <polygon points="0,0 320,0 160,120" fill="#D8D1CA" />
                   </svg>
                 </motion.div>
               </div>
             </motion.div>
-
           </motion.div>
         )}
       </AnimatePresence>
@@ -276,13 +331,14 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
             initial={{ width: 280, opacity: 0, y: -40 }}
             animate={{ width: 472, opacity: 1, y: 0 }}
             transition={{
-              width: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.35 },
-              y: { duration: 0.45, ease: [0.4, 0, 0.2, 1] },
-              layout: { duration: 0.45, ease: [0.4, 0, 0.2, 1] },
+              width: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] },
+              opacity: { duration: 0.5 },
+              y: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] },
+              layout: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] },
             }}
             onAnimationComplete={() => {
-              if (stage === "expanding") setStage("form");
+              if (stage === "expanding")
+                setTimeout(() => setStage("form"), 200);
             }}
             style={{
               background: "var(--white)",
@@ -312,13 +368,21 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                 </p>
                 <h2
                   className="font-script"
-                  style={{ fontSize: 52, color: "var(--dark)", marginBottom: 16 }}
+                  style={{
+                    fontSize: 52,
+                    color: "var(--dark)",
+                    marginBottom: 16,
+                  }}
                 >
                   {attending ? "We'll see you there" : "We'll miss you"}
                 </h2>
                 <p
                   className="font-serif italic"
-                  style={{ fontSize: 17, color: "var(--subtle)", lineHeight: 1.7 }}
+                  style={{
+                    fontSize: 17,
+                    color: "var(--subtle)",
+                    lineHeight: 1.7,
+                  }}
                 >
                   {attending
                     ? "Thank you so much — we can't wait to celebrate with you."
@@ -332,13 +396,21 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                   <div style={{ padding: "18px 24px" }}>
                     <p
                       className="font-script"
-                      style={{ fontSize: 22, color: "var(--mauve)", textAlign: "center" }}
+                      style={{
+                        fontSize: 22,
+                        color: "var(--mauve)",
+                        textAlign: "center",
+                      }}
                     >
                       K & R
                     </p>
                     <p
                       className="font-serif italic"
-                      style={{ fontSize: 12, color: "var(--subtle)", textAlign: "center" }}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--subtle)",
+                        textAlign: "center",
+                      }}
                     >
                       July 8, 2027
                     </p>
@@ -350,7 +422,7 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
                     style={{ padding: "40px 40px 36px" }}
                   >
                     {/* Header */}
@@ -568,7 +640,11 @@ export default function InvitationCard({ token, guestName }: InvitationCardProps
                     {error && (
                       <p
                         className="font-sans"
-                        style={{ fontSize: 12, color: "#C05050", marginBottom: 12 }}
+                        style={{
+                          fontSize: 12,
+                          color: "#C05050",
+                          marginBottom: 12,
+                        }}
                       >
                         {error}
                       </p>
