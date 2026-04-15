@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "../../../lib/db";
-import { guests, rsvps } from "../../../lib/schema";
+import { db } from "@/lib/db";
+import { guests } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { token, attending, mealPreference, message, name } = body;
+export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get("token");
 
-  if (!token || attending === undefined || attending === null) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 },
-    );
+  if (!token) {
+    return NextResponse.json({ valid: false }, { status: 400 });
   }
 
-  // Validate token
   const guest = await db
     .select()
     .from(guests)
@@ -22,27 +17,16 @@ export async function POST(request: NextRequest) {
     .limit(1);
 
   if (!guest.length) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 404 });
+    return NextResponse.json({ valid: false }, { status: 404 });
   }
 
   if (guest[0].usedAt) {
-    return NextResponse.json({ error: "Already responded" }, { status: 403 });
+    return NextResponse.json({ valid: false, reason: "used" }, { status: 403 });
   }
 
-  // Save RSVP and invalidate token in a transaction
-  await db.transaction(async (tx) => {
-    await tx.insert(rsvps).values({
-      guestId: guest[0].id,
-      attending,
-      mealPreference: attending ? mealPreference : null,
-      message: message || null,
-    });
-
-    await tx
-      .update(guests)
-      .set({ usedAt: new Date() })
-      .where(eq(guests.id, guest[0].id));
+  return NextResponse.json({
+    valid: true,
+    name: guest[0].name,
+    guestId: guest[0].id,
   });
-
-  return NextResponse.json({ success: true });
 }
