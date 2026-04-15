@@ -4,13 +4,12 @@ import { useState } from "react";
 
 interface RsvpFormProps {
   token: string;
-  guestId: number;
   guestName: string | null;
 }
 
 const MEALS = ["Chicken", "Salmon", "Vegetarian"];
 
-export default function RsvpForm({ token, guestId, guestName }: RsvpFormProps) {
+export default function RsvpForm({ token, guestName }: RsvpFormProps) {
   const [name, setName] = useState(guestName || "");
   const [attending, setAttending] = useState<boolean | null>(null);
   const [meal, setMeal] = useState("");
@@ -19,7 +18,11 @@ export default function RsvpForm({ token, guestId, guestName }: RsvpFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  const canSubmit = name.trim() && attending !== null && !submitting;
+  const canSubmit =
+    name.trim() &&
+    attending !== null &&
+    (attending === false || meal !== "") &&
+    !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -32,9 +35,8 @@ export default function RsvpForm({ token, guestId, guestName }: RsvpFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          guestId,
           attending,
-          mealPreference: meal,
+          mealPreference: meal || null,
           message,
           name,
         }),

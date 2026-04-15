@@ -9,7 +9,6 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null);
   const [tokenValid, setTokenValid] = useState<boolean>(false);
   const [guestName, setGuestName] = useState<string | null>(null);
-  const [guestId, setGuestId] = useState<number | null>(null);
   const [tokenUsed, setTokenUsed] = useState<boolean>(false);
   const [tokenChecked, setTokenChecked] = useState<boolean>(false);
 
@@ -24,13 +23,12 @@ export default function Home() {
 
     setToken(t);
 
-    fetch(`/api/token?token=${t}`)
+    fetch(`/api/token?token=${encodeURIComponent(t)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.valid) {
           setTokenValid(true);
           setGuestName(data.name || null);
-          setGuestId(data.guestId);
         } else if (data.reason === "used") {
           setTokenUsed(true);
         }
@@ -48,7 +46,6 @@ export default function Home() {
         tokenChecked={tokenChecked}
         tokenUsed={tokenUsed}
         guestName={guestName}
-        guestId={guestId}
       />
     </main>
   );

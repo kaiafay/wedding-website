@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function HeroSection() {
   return (
     <section
@@ -9,11 +11,13 @@ export default function HeroSection() {
     >
       {/* Photo column */}
       <div className="relative overflow-hidden">
-        <img
+        <Image
           src="https://images.unsplash.com/photo-1519741497674-611481863552?w=900&q=80"
           alt="Couple"
-          className="w-full h-full object-cover"
-          style={{ filter: "saturate(0.7) contrast(1.05)" }}
+          fill
+          sizes="50vw"
+          style={{ objectFit: "cover", filter: "saturate(0.7) contrast(1.05)" }}
+          priority
         />
         <div
           className="absolute inset-0"

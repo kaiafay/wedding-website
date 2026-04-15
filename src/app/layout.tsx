@@ -22,7 +22,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Alexandra & James — June 14, 2025",
+  title: "Kaia & Richard — July 8, 2027",
   description: "Join us to celebrate our wedding day.",
 };
 

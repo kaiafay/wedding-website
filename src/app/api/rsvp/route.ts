@@ -34,13 +34,16 @@ export async function POST(request: NextRequest) {
     await tx.insert(rsvps).values({
       guestId: guest[0].id,
       attending,
-      mealPreference: attending ? mealPreference : null,
+      mealPreference: attending ? (mealPreference || null) : null,
       message: message || null,
     });
 
     await tx
       .update(guests)
-      .set({ usedAt: new Date() })
+      .set({
+        usedAt: new Date(),
+        ...(name?.trim() ? { name: name.trim() } : {}),
+      })
       .where(eq(guests.id, guest[0].id));
   });
 

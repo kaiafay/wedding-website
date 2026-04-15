@@ -10,7 +10,6 @@ interface RsvpSectionProps {
   tokenChecked: boolean;
   tokenUsed: boolean;
   guestName: string | null;
-  guestId: number | null;
 }
 
 export default function RsvpSection({
@@ -19,7 +18,6 @@ export default function RsvpSection({
   tokenChecked,
   tokenUsed,
   guestName,
-  guestId,
 }: RsvpSectionProps) {
   const [envelopeOpen, setEnvelopeOpen] = useState(false);
 
@@ -121,7 +119,6 @@ export default function RsvpSection({
             {envelopeOpen && (
               <RsvpForm
                 token={token!}
-                guestId={guestId!}
                 guestName={guestName}
               />
             )}
