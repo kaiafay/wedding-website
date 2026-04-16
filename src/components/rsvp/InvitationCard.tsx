@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { animate, motion, AnimatePresence } from "framer-motion";
 
 const FLAP_TIP_LEN = 112;
@@ -27,6 +27,21 @@ export default function InvitationCard({
   guestName,
 }: InvitationCardProps) {
   const [stage, setStage] = useState<Stage>("idle");
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+      if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Form state
   const [name, setName] = useState(guestName || "");
@@ -79,6 +94,52 @@ export default function InvitationCard({
   const handleClick = () => {
     if (stage !== "idle") return;
     setStage("opening");
+
+    try {
+      const audio = new Audio("/music/invitation.mp3");
+      audio.volume = 0;
+      audioRef.current = audio;
+
+      const TARGET_VOL = 0.4;
+      const TICK = 50;
+
+      // Fade in over 0.3 s
+      const fadeInDelta = TARGET_VOL / (300 / TICK);
+      fadeInIntervalRef.current = setInterval(() => {
+        const a = audioRef.current;
+        if (!a) { clearInterval(fadeInIntervalRef.current!); return; }
+        const next = Math.min(TARGET_VOL, a.volume + fadeInDelta);
+        a.volume = next;
+        if (next >= TARGET_VOL) {
+          clearInterval(fadeInIntervalRef.current!);
+          fadeInIntervalRef.current = null;
+        }
+      }, TICK);
+
+      // Fade out over last 3 s, triggered by timeupdate
+      const handleTimeUpdate = () => {
+        const a = audioRef.current;
+        if (!a || fadeOutIntervalRef.current) return;
+        if (a.duration && a.duration - a.currentTime <= 3) {
+          const fadeOutDelta = a.volume / (3000 / TICK);
+          fadeOutIntervalRef.current = setInterval(() => {
+            const b = audioRef.current;
+            if (!b) { clearInterval(fadeOutIntervalRef.current!); return; }
+            const next = Math.max(0, b.volume - fadeOutDelta);
+            b.volume = next;
+            if (next <= 0) {
+              clearInterval(fadeOutIntervalRef.current!);
+              fadeOutIntervalRef.current = null;
+            }
+          }, TICK);
+        }
+      };
+
+      audio.addEventListener("timeupdate", handleTimeUpdate);
+      audio.play().catch(() => {});
+    } catch {
+      // autoplay blocked or audio unavailable — fail silently
+    }
   };
 
   const handleSubmit = async () => {
