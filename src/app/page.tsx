@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import HeroSection from "@/components/sections/HeroSection";
+import OurStorySection from "@/components/sections/OurStorySection";
 import ScheduleSection from "@/components/sections/ScheduleSection";
 import RsvpSection from "@/components/sections/RsvpSection";
 
@@ -39,6 +40,7 @@ export default function Home() {
   return (
     <main>
       <HeroSection />
+      <OurStorySection />
       <ScheduleSection />
       <RsvpSection
         token={token}
