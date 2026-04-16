@@ -59,7 +59,7 @@ function FaqItem({
         }}
       >
         <span
-          className="font-sans"
+          className="font-sans faq-question"
           style={{
             fontSize: 10,
             letterSpacing: "0.3em",
@@ -119,7 +119,13 @@ export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section style={{ background: "var(--white)", padding: "88px 0" }}>
+    <>
+      <style>{`
+        @media (max-width: 640px) {
+          .faq-question { letter-spacing: 0.08em !important; font-size: 9px !important; }
+        }
+      `}</style>
+      <section style={{ background: "var(--white)", padding: "88px 0" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
         {/* Header */}
         <div className="flex items-center gap-6 mb-16">
@@ -166,5 +172,6 @@ export default function FaqSection() {
         </div>
       </div>
     </section>
+    </>
   );
 }

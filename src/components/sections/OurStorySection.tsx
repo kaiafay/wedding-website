@@ -23,8 +23,25 @@ const entries = [
 
 export default function OurStorySection() {
   return (
-    <section style={{ background: "var(--white)", padding: "88px 0" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
+    <>
+      <style>{`
+        @media (max-width: 600px) {
+          .story-inner { padding: 0 20px !important; }
+          .story-header-script { font-size: 34px !important; white-space: nowrap; }
+          .story-entry-title { font-size: 26px !important; }
+          .story-spine { left: 19px !important; transform: translateX(-50%) !important; }
+          .story-entry { grid-template-columns: 38px 1fr !important; }
+          .story-entry-left { display: none !important; }
+          .story-entry-right {
+            visibility: visible !important;
+            padding-left: 16px !important;
+            padding-right: 0 !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
+      <section style={{ background: "var(--white)", padding: "88px 0" }}>
+      <div className="story-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
         {/* Header */}
         <div className="flex items-center gap-6 mb-16">
           <span
@@ -34,18 +51,16 @@ export default function OurStorySection() {
               letterSpacing: "0.35em",
               textTransform: "uppercase",
               color: "var(--mauve)",
-              whiteSpace: "nowrap",
             }}
           >
             Our Story
           </span>
           <span
-            className="font-script"
+            className="font-script story-header-script"
             style={{
               fontSize: 44,
               color: "var(--charcoal)",
               lineHeight: 1,
-              whiteSpace: "nowrap",
             }}
           >
             How It Started
@@ -60,6 +75,7 @@ export default function OurStorySection() {
         <div style={{ position: "relative" }}>
           {/* Vertical spine */}
           <div
+            className="story-spine"
             style={{
               position: "absolute",
               top: 0,
@@ -79,6 +95,7 @@ export default function OurStorySection() {
             return (
               <div
                 key={entry.title}
+                className="story-entry"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 40px 1fr",
@@ -88,6 +105,7 @@ export default function OurStorySection() {
               >
                 {/* Left content (shown for right-aligned / odd entries) */}
                 <div
+                  className="story-entry-left"
                   style={{
                     paddingRight: 32,
                     paddingBottom: 16,
@@ -109,7 +127,7 @@ export default function OurStorySection() {
                     {entry.label}
                   </span>
                   <p
-                    className="font-script"
+                    className="font-script story-entry-title"
                     style={{
                       fontSize: 34,
                       color: "var(--charcoal)",
@@ -157,6 +175,7 @@ export default function OurStorySection() {
 
                 {/* Right content (shown for left-aligned / even entries) */}
                 <div
+                  className="story-entry-right"
                   style={{
                     paddingLeft: 32,
                     paddingBottom: 16,
@@ -178,7 +197,7 @@ export default function OurStorySection() {
                     {entry.label}
                   </span>
                   <p
-                    className="font-script"
+                    className="font-script story-entry-title"
                     style={{
                       fontSize: 34,
                       color: "var(--charcoal)",
@@ -207,5 +226,6 @@ export default function OurStorySection() {
         </div>
       </div>
     </section>
+    </>
   );
 }
