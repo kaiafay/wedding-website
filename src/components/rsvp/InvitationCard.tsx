@@ -1,7 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { animate, motion, AnimatePresence } from "framer-motion";
+
+const FLAP_TIP_LEN = 112;
+const FLAP_DURATION_S = 0.75;
+
+const FLAP_FRONT = { r: 228, g: 221, b: 214 };
+const FLAP_INNER = { r: 216, g: 209, b: 202 };
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
 
 type Stage = "idle" | "opening" | "rising" | "expanding" | "form";
 
@@ -26,6 +36,39 @@ export default function InvitationCard({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [flapAngle, setFlapAngle] = useState(0);
+
+  useEffect(() => {
+    if (stage !== "opening") {
+      if (stage === "idle") setFlapAngle(0);
+      return;
+    }
+    setFlapAngle(0);
+    const controls = animate(0, Math.PI, {
+      duration: FLAP_DURATION_S,
+      ease: easeOutCubic,
+      onUpdate: (v) => setFlapAngle(v),
+      onComplete: () => setStage("rising"),
+    });
+    return () => controls.stop();
+  }, [stage]);
+
+  const cosA = Math.cos(flapAngle);
+  const flapTipY = cosA * FLAP_TIP_LEN;
+  const flapShade = 0.75 + 0.25 * Math.abs(cosA);
+  const openBlend = (1 - cosA) / 2; // 0 = closed (outer), 1 = tip up (inner)
+  const flapRgb = {
+    r: Math.round(
+      (FLAP_FRONT.r * (1 - openBlend) + FLAP_INNER.r * openBlend) * flapShade,
+    ),
+    g: Math.round(
+      (FLAP_FRONT.g * (1 - openBlend) + FLAP_INNER.g * openBlend) * flapShade,
+    ),
+    b: Math.round(
+      (FLAP_FRONT.b * (1 - openBlend) + FLAP_INNER.b * openBlend) * flapShade,
+    ),
+  };
+  const sealOpacityOpening = Math.max(0, 1 - flapAngle / (0.4 * Math.PI));
 
   const canSubmit =
     name.trim() &&
@@ -134,14 +177,13 @@ export default function InvitationCard({
               tabIndex={stage === "idle" ? 0 : -1}
               onKeyDown={(e) => e.key === "Enter" && handleClick()}
             >
-              {/* Clip container — hides card inside envelope during idle/opening */}
+              {/* Perspective container — card occluded by envelope body (z-index) until it clears the top */}
               <div
                 style={{
                   position: "relative",
                   width: 320,
                   height: 213,
-                  overflow: stage === "rising" ? "visible" : "hidden",
-                  perspective: 800,
+                  overflow: "visible",
                 }}
               >
                 {/* Envelope body */}
@@ -158,34 +200,56 @@ export default function InvitationCard({
                     background: "#EDE8E2",
                     borderRadius: 2,
                     boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
-                    zIndex: 1,
+                    zIndex: 2,
                   }}
                 >
-                  {/* Side fold lines */}
-                  <div
+                  {/* Crease lines — true corner diagonals (45°/135° gradients don’t match a non-square box) */}
+                  <svg
+                    width={320}
+                    height={213}
+                    viewBox="0 0 320 213"
                     style={{
                       position: "absolute",
                       inset: 0,
-                      background: `
-                        linear-gradient(135deg, transparent 49.5%, rgba(0,0,0,0.06) 49.5%, rgba(0,0,0,0.06) 50.5%, transparent 50.5%),
-                        linear-gradient(45deg, transparent 49.5%, rgba(0,0,0,0.06) 49.5%, rgba(0,0,0,0.06) 50.5%, transparent 50.5%)
-                      `,
+                      pointerEvents: "none",
                     }}
-                  />
+                    aria-hidden
+                  >
+                    <line
+                      x1={0}
+                      y1={0}
+                      x2={320}
+                      y2={213}
+                      stroke="rgba(0,0,0,0.07)"
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <line
+                      x1={320}
+                      y1={0}
+                      x2={0}
+                      y2={213}
+                      stroke="rgba(0,0,0,0.07)"
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
                 </motion.div>
 
                 {/* Wax seal — direct child of container so zIndex is in container's stacking
-                    context, above the flap (zIndex 5). Fades with the envelope during rising. */}
+                    context, above the flap (zIndex 4). Fades with the envelope during rising. */}
                 <motion.div
-                  animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{
-                    duration: 0.4,
-                    ease: "easeOut",
-                    delay: stage === "rising" ? 0.2 : 0,
+                  animate={{
+                    opacity: stage === "rising" ? 0 : sealOpacityOpening,
                   }}
+                  transition={
+                    stage === "rising"
+                      ? { duration: 0.4, ease: "easeOut", delay: 0.2 }
+                      : { duration: 0 }
+                  }
                   style={{
                     position: "absolute",
-                    top: 120,
+                    top: flapTipY,
                     left: "50%",
                     transform: "translate(-50%, -50%)",
                     width: 48,
@@ -199,7 +263,7 @@ export default function InvitationCard({
                     boxShadow:
                       "inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 2px rgba(255,255,255,0.1), 0 2px 10px rgba(0,0,0,0.35)",
                     border: "1.5px solid rgba(0,0,0,0.15)",
-                    zIndex: 6,
+                    zIndex: 5,
                   }}
                 >
                   <span
@@ -229,9 +293,7 @@ export default function InvitationCard({
                     background: "var(--white)",
                     padding: "18px 24px",
                     boxShadow: "0 -2px 12px rgba(0,0,0,0.1)",
-                    // Behind the envelope body (zIndex 1) during idle/opening so it's hidden.
-                    // Raised above everything once rising starts.
-                    zIndex: stage === "rising" ? 3 : 0,
+                    zIndex: 1,
                   }}
                 >
                   <p
@@ -256,64 +318,36 @@ export default function InvitationCard({
                   </p>
                 </motion.div>
 
-                {/* Flap */}
+                {/* Top flap — 2D hinge (tip follows cos(angle)·L), same as envelope_hinge_fixed.html */}
                 <motion.div
-                  animate={
-                    stage === "idle"
-                      ? { rotateX: 0 }
-                      : stage === "rising"
-                        ? { rotateX: -175, opacity: 0 }
-                        : { rotateX: -175 }
-                  }
+                  animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
                   transition={
-                    stage === "opening"
-                      ? { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }
-                      : stage === "rising"
-                        ? { opacity: { duration: 0.4 } }
-                        : {}
+                    stage === "rising"
+                      ? { opacity: { duration: 0.4 } }
+                      : { duration: 0 }
                   }
-                  onAnimationComplete={() => {
-                    if (stage === "opening") setStage("rising");
-                  }}
                   style={{
                     position: "absolute",
-                    top: 0,
+                    /* viewBox y=0 (hinge) maps to SVG vertical center; shift up so hinge meets envelope top */
+                    top: -FLAP_TIP_LEN,
                     left: 0,
-                    right: 0,
-                    height: 120,
-                    transformOrigin: "top center",
-                    transformStyle: "preserve-3d",
-                    zIndex: stage === "idle" || stage === "opening" ? 5 : 0,
+                    width: 320,
+                    height: FLAP_TIP_LEN * 2,
+                    zIndex: 4,
+                    pointerEvents: "none",
                   }}
                 >
-                  {/* Front face */}
                   <svg
-                    viewBox="0 0 320 120"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      backfaceVisibility: "hidden",
-                    }}
+                    width={320}
+                    height={FLAP_TIP_LEN * 2}
+                    viewBox={`0 ${-FLAP_TIP_LEN} 320 ${FLAP_TIP_LEN * 2}`}
+                    style={{ display: "block" }}
+                    aria-hidden
                   >
-                    <polygon points="0,0 320,0 160,120" fill="#E4DDD6" />
-                  </svg>
-                  {/* Back face (inside of flap) */}
-                  <svg
-                    viewBox="0 0 320 120"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      backfaceVisibility: "hidden",
-                      transform: "rotateX(180deg)",
-                    }}
-                  >
-                    <polygon points="0,0 320,0 160,120" fill="#D8D1CA" />
+                    <polygon
+                      points={`0,0 320,0 160,${flapTipY}`}
+                      fill={`rgb(${flapRgb.r},${flapRgb.g},${flapRgb.b})`}
+                    />
                   </svg>
                 </motion.div>
               </div>
