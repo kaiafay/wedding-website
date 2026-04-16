@@ -23,7 +23,7 @@ const entries = [
 
 export default function OurStorySection() {
   return (
-    <section style={{ background: "var(--dark)", padding: "88px 0" }}>
+    <section style={{ background: "var(--white)", padding: "88px 0" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
         {/* Header */}
         <div className="flex items-center gap-6 mb-16">
@@ -43,7 +43,7 @@ export default function OurStorySection() {
             className="font-script"
             style={{
               fontSize: 44,
-              color: "var(--white)",
+              color: "var(--charcoal)",
               lineHeight: 1,
               whiteSpace: "nowrap",
             }}
@@ -52,7 +52,7 @@ export default function OurStorySection() {
           </span>
           <div
             className="flex-1"
-            style={{ height: 1, background: "var(--mauve-dark)" }}
+            style={{ height: 1, background: "var(--rule)" }}
           />
         </div>
 
@@ -66,8 +66,8 @@ export default function OurStorySection() {
               bottom: 0,
               left: "50%",
               width: 1,
-              background: "var(--mauve-dark)",
-              opacity: 0.4,
+              background: "var(--rule)",
+              opacity: 0.8,
               transform: "translateX(-50%)",
             }}
           />
@@ -102,7 +102,7 @@ export default function OurStorySection() {
                       fontSize: 9,
                       letterSpacing: "0.3em",
                       textTransform: "uppercase",
-                      color: "var(--mauve-light)",
+                      color: "var(--mauve)",
                       marginBottom: 8,
                     }}
                   >
@@ -112,7 +112,7 @@ export default function OurStorySection() {
                     className="font-script"
                     style={{
                       fontSize: 34,
-                      color: "var(--white)",
+                      color: "var(--charcoal)",
                       lineHeight: 1.1,
                       marginBottom: 10,
                     }}
@@ -140,6 +140,8 @@ export default function OurStorySection() {
                     display: "flex",
                     justifyContent: "center",
                     paddingTop: 18,
+                    position: "relative",
+                    zIndex: 1,
                   }}
                 >
                   <div
@@ -169,7 +171,7 @@ export default function OurStorySection() {
                       fontSize: 9,
                       letterSpacing: "0.3em",
                       textTransform: "uppercase",
-                      color: "var(--mauve-light)",
+                      color: "var(--mauve)",
                       marginBottom: 8,
                     }}
                   >
@@ -179,7 +181,7 @@ export default function OurStorySection() {
                     className="font-script"
                     style={{
                       fontSize: 34,
-                      color: "var(--white)",
+                      color: "var(--charcoal)",
                       lineHeight: 1.1,
                       marginBottom: 10,
                     }}
