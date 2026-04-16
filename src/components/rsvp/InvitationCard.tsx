@@ -30,7 +30,9 @@ export default function InvitationCard({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
@@ -107,7 +109,10 @@ export default function InvitationCard({
       const fadeInDelta = TARGET_VOL / (300 / TICK);
       fadeInIntervalRef.current = setInterval(() => {
         const a = audioRef.current;
-        if (!a) { clearInterval(fadeInIntervalRef.current!); return; }
+        if (!a) {
+          clearInterval(fadeInIntervalRef.current!);
+          return;
+        }
         const next = Math.min(TARGET_VOL, a.volume + fadeInDelta);
         a.volume = next;
         if (next >= TARGET_VOL) {
@@ -124,7 +129,10 @@ export default function InvitationCard({
           const fadeOutDelta = a.volume / (3000 / TICK);
           fadeOutIntervalRef.current = setInterval(() => {
             const b = audioRef.current;
-            if (!b) { clearInterval(fadeOutIntervalRef.current!); return; }
+            if (!b) {
+              clearInterval(fadeOutIntervalRef.current!);
+              return;
+            }
             const next = Math.max(0, b.volume - fadeOutDelta);
             b.volume = next;
             if (next <= 0) {
@@ -471,7 +479,7 @@ export default function InvitationCard({
                 <h2
                   className="font-script"
                   style={{
-                    fontSize: 52,
+                    fontSize: 44,
                     color: "var(--dark)",
                     marginBottom: 16,
                   }}

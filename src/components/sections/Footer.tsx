@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer
@@ -7,17 +9,27 @@ export default function Footer() {
         textAlign: "center",
       }}
     >
-      <p
-        className="font-script"
+      <Link
+        href="/admin"
         style={{
-          fontSize: 28,
-          color: "var(--white)",
-          lineHeight: 1,
-          marginBottom: 12,
+          textDecoration: "none",
+          color: "inherit",
+          cursor: "default",
         }}
+        tabIndex={-1}
       >
-        Kaia &amp; Richard
-      </p>
+        <p
+          className="font-script"
+          style={{
+            fontSize: 28,
+            color: "var(--white)",
+            lineHeight: 1,
+            marginBottom: 12,
+          }}
+        >
+          Kaia &amp; Richard
+        </p>
+      </Link>
       <p
         className="font-sans"
         style={{

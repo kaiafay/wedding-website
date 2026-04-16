@@ -29,23 +29,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Already responded" }, { status: 403 });
   }
 
-  // Save RSVP and invalidate token in a transaction
-  await db.transaction(async (tx) => {
-    await tx.insert(rsvps).values({
+  try {
+    await db.insert(rsvps).values({
       guestId: guest[0].id,
       attending,
       mealPreference: attending ? (mealPreference || null) : null,
       message: message || null,
     });
 
-    await tx
+    await db
       .update(guests)
       .set({
         usedAt: new Date(),
         ...(name?.trim() ? { name: name.trim() } : {}),
       })
       .where(eq(guests.id, guest[0].id));
-  });
+  } catch (err) {
+    console.error("Failed to save RSVP:", err);
+    return NextResponse.json({ error: "Failed to save RSVP" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
