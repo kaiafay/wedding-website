@@ -484,8 +484,8 @@ export default function InvitationCard({
                       <h2
                         className="font-script"
                         style={{
-                          fontSize: 54,
-                          color: "var(--dark)",
+                          fontSize: 44,
+                          color: "var(--charcoal)",
                           lineHeight: 1,
                           marginBottom: 10,
                         }}
