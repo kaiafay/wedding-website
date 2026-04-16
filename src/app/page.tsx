@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import HeroSection from "@/components/sections/HeroSection";
 import OurStorySection from "@/components/sections/OurStorySection";
 import ScheduleSection from "@/components/sections/ScheduleSection";
+import FaqSection from "@/components/sections/FaqSection";
 import RsvpSection from "@/components/sections/RsvpSection";
+import Footer from "@/components/sections/Footer";
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function Home() {
       <HeroSection />
       <OurStorySection />
       <ScheduleSection />
+      <FaqSection />
       <RsvpSection
         token={token}
         tokenValid={tokenValid}
@@ -49,6 +52,7 @@ export default function Home() {
         tokenUsed={tokenUsed}
         guestName={guestName}
       />
+      <Footer />
     </main>
   );
 }

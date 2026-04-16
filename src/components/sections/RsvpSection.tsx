@@ -21,14 +21,14 @@ export default function RsvpSection({
     return (
       <section
         id="rsvp"
-        style={{ background: "var(--dark)", padding: "96px 0" }}
+        style={{ background: "var(--white)", padding: "96px 0" }}
       />
     );
 
   return (
     <section
       id="rsvp"
-      style={{ background: "var(--dark)", padding: "96px 0 112px" }}
+      style={{ background: "var(--white)", padding: "56px 0 64px" }}
     >
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 24px" }}>
         {/* No token — public view */}
