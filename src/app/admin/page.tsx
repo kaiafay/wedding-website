@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import { isAuthenticated } from "@/lib/auth";
+import { serializeGuest } from "@/lib/serializers";
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -17,22 +18,7 @@ export default async function AdminPage() {
     orderBy: (g, { asc }) => [asc(g.createdAt)],
   });
 
-  const guestData = allGuests.map((g) => ({
-    id: g.id,
-    name: g.name,
-    email: g.email,
-    usedAt: g.usedAt?.toISOString() ?? null,
-    sentAt: g.sentAt?.toISOString() ?? null,
-    createdAt: g.createdAt.toISOString(),
-    rsvp: g.rsvp
-      ? {
-          id: g.rsvp.id,
-          attending: g.rsvp.attending,
-          mealPreference: g.rsvp.mealPreference,
-          message: g.rsvp.message,
-        }
-      : null,
-  }));
+  const guestData = allGuests.map(serializeGuest);
 
   return <AdminDashboard guests={guestData} />;
 }

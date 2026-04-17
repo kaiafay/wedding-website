@@ -1,3 +1,5 @@
+import SectionHeader from "@/components/ui/SectionHeader";
+
 const schedule = [
   {
     time: "4:00 pm",
@@ -28,33 +30,7 @@ export default function ScheduleSection() {
       <section style={{ background: "var(--white)", padding: "88px 0" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
           {/* Header */}
-          <div className="flex items-center gap-6 mb-16">
-            <span
-              className="font-sans"
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.35em",
-                textTransform: "uppercase",
-                color: "var(--mauve)",
-              }}
-            >
-              The Day
-            </span>
-            <span
-              className="font-script"
-              style={{
-                fontSize: 44,
-                color: "var(--charcoal)",
-                lineHeight: 1,
-              }}
-            >
-              Schedule
-            </span>
-            <div
-              className="flex-1"
-              style={{ height: 1, background: "var(--rule)" }}
-            />
-          </div>
+          <SectionHeader label="The Day" title="Schedule" />
 
           {/* Grid */}
           <div

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 const entries = [
   {
@@ -101,33 +102,7 @@ export default function OurStorySection() {
       <section style={{ background: "var(--white)", padding: "88px 0" }}>
         <div className="story-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
           {/* Header */}
-          <div className="flex items-center gap-6 mb-16">
-            <span
-              className="font-sans"
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.35em",
-                textTransform: "uppercase",
-                color: "var(--mauve)",
-              }}
-            >
-              Our Story
-            </span>
-            <span
-              className="font-script story-header-script"
-              style={{
-                fontSize: 44,
-                color: "var(--charcoal)",
-                lineHeight: 1,
-              }}
-            >
-              How It Started
-            </span>
-            <div
-              className="flex-1"
-              style={{ height: 1, background: "var(--rule)" }}
-            />
-          </div>
+          <SectionHeader label="Our Story" title="How It Started" titleClassName="story-header-script" />
 
           {/* Timeline */}
           <div style={{ position: "relative" }}>

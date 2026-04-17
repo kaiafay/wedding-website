@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 const faqs = [
   {
@@ -128,35 +129,7 @@ export default function FaqSection() {
       <section style={{ background: "var(--white)", padding: "88px 0" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
         {/* Header */}
-        <div className="flex items-center gap-6 mb-16">
-          <span
-            className="font-sans"
-            style={{
-              fontSize: 10,
-              letterSpacing: "0.35em",
-              textTransform: "uppercase",
-              color: "var(--mauve)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Good to Know
-          </span>
-          <span
-            className="font-script"
-            style={{
-              fontSize: 44,
-              color: "var(--charcoal)",
-              lineHeight: 1,
-              whiteSpace: "nowrap",
-            }}
-          >
-            FAQ
-          </span>
-          <div
-            className="flex-1"
-            style={{ height: 1, background: "var(--rule)" }}
-          />
-        </div>
+        <SectionHeader label="Good to Know" title="FAQ" nowrap />
 
         {/* Accordion */}
         <div style={{ borderTop: "1px solid var(--rule)" }}>

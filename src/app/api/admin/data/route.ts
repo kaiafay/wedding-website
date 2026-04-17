@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { validateSession } from "@/lib/auth";
+import { serializeGuest } from "@/lib/serializers";
 
 export async function GET(request: NextRequest) {
   if (!validateSession(request)) {
@@ -12,22 +13,7 @@ export async function GET(request: NextRequest) {
     orderBy: (g, { asc }) => [asc(g.createdAt)],
   });
 
-  const guests = allGuests.map((g) => ({
-    id: g.id,
-    name: g.name,
-    email: g.email,
-    usedAt: g.usedAt?.toISOString() ?? null,
-    sentAt: g.sentAt?.toISOString() ?? null,
-    createdAt: g.createdAt.toISOString(),
-    rsvp: g.rsvp
-      ? {
-          id: g.rsvp.id,
-          attending: g.rsvp.attending,
-          mealPreference: g.rsvp.mealPreference,
-          message: g.rsvp.message,
-        }
-      : null,
-  }));
+  const guests = allGuests.map(serializeGuest);
 
   return NextResponse.json({ guests });
 }

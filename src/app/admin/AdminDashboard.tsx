@@ -110,7 +110,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  // Poll for RSVP updates every 30 seconds
+  // Poll for RSVP updates every 30 seconds, paused when tab is hidden
   useEffect(() => {
     async function poll() {
       try {
@@ -123,8 +123,35 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
       }
     }
 
-    const id = setInterval(poll, 30_000);
-    return () => clearInterval(id);
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    function startPolling() {
+      stopPolling();
+      intervalId = setInterval(poll, 30_000);
+    }
+
+    function stopPolling() {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    }
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   async function handleLogout() {
