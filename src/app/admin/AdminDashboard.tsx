@@ -181,7 +181,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     setResetLoading(false);
     if (res.ok) {
       setGuestList((prev) =>
-        prev.map((g) => g.id === resetGuestId ? { ...g, rsvp: null, usedAt: null } : g)
+        prev.map((g) => g.id === resetGuestId ? { ...g, rsvp: null, usedAt: null, sentAt: null } : g)
       );
       closeResetModal();
     } else {

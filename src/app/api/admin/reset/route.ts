@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await db.delete(rsvps).where(eq(rsvps.guestId, guestId));
-    await db.update(guests).set({ usedAt: null }).where(eq(guests.id, guestId));
+    await db.update(guests).set({ usedAt: null, sentAt: null }).where(eq(guests.id, guestId));
   } catch (err) {
     console.error("Failed to reset guest:", err);
     return NextResponse.json({ error: "Failed to reset guest" }, { status: 500 });
