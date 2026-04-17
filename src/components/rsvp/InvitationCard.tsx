@@ -30,7 +30,9 @@ export default function InvitationCard({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const risingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const expandingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -360,7 +362,10 @@ export default function InvitationCard({
                   transition={{ duration: 1.0, ease: [0.33, 0, 0.2, 1] }}
                   onAnimationComplete={() => {
                     if (stage === "rising")
-                      risingTimerRef.current = setTimeout(() => setStage("expanding"), 350);
+                      risingTimerRef.current = setTimeout(
+                        () => setStage("expanding"),
+                        350,
+                      );
                   }}
                   style={{
                     position: "absolute",
@@ -449,7 +454,10 @@ export default function InvitationCard({
             }}
             onAnimationComplete={() => {
               if (stage === "expanding")
-                expandingTimerRef.current = setTimeout(() => setStage("form"), 200);
+                expandingTimerRef.current = setTimeout(
+                  () => setStage("form"),
+                  200,
+                );
             }}
             style={{
               width: "100%",
@@ -481,8 +489,8 @@ export default function InvitationCard({
                 <h2
                   className="font-script"
                   style={{
-                    fontSize: 44,
-                    color: "var(--dark)",
+                    fontSize: 36,
+                    color: "var(--charcoal)",
                     marginBottom: 16,
                   }}
                 >
@@ -555,7 +563,7 @@ export default function InvitationCard({
                       <h2
                         className="font-script"
                         style={{
-                          fontSize: 44,
+                          fontSize: 40,
                           color: "var(--charcoal)",
                           lineHeight: 1,
                           marginBottom: 10,

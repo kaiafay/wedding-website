@@ -110,6 +110,9 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Detail modal
+  const [detailGuest, setDetailGuest] = useState<GuestRow | null>(null);
+
   // Poll for RSVP updates every 30 seconds, paused when tab is hidden
   useEffect(() => {
     async function poll() {
@@ -260,12 +263,26 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
         boxSizing: "border-box",
       }}
     >
+      <style>{`
+        @media (max-width: 639px) {
+          .adm-col { display: none !important; }
+          .adm-name-btn { display: inline !important; }
+          .adm-name-txt { display: none !important; }
+          .adm-summary { justify-content: center; }
+        }
+        @media (min-width: 640px) {
+          .adm-col { display: table-cell !important; }
+          .adm-name-btn { display: none !important; }
+          .adm-name-txt { display: inline !important; }
+          .adm-summary { justify-content: flex-start; }
+        }
+      `}</style>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         {/* Header */}
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
+            alignItems: "flex-start",
             justifyContent: "space-between",
             marginBottom: 36,
             flexWrap: "wrap",
@@ -274,7 +291,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
         >
           <p
             className="font-script"
-            style={{ fontSize: 36, color: "var(--charcoal)", lineHeight: 1 }}
+            style={{ fontSize: 36, color: "var(--charcoal)", lineHeight: 1, margin: 0 }}
           >
             RSVPs
           </p>
@@ -300,7 +317,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
         <div
           style={{
             marginBottom: 40,
-            padding: "24px",
+            padding: "28px 32px",
             border: "1px solid var(--rule)",
           }}
         >
@@ -341,7 +358,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                   padding: "8px 12px",
                   background: "var(--white)",
                   outline: "none",
-                  width: 200,
+                  width: 220,
                 }}
               />
             </div>
@@ -366,7 +383,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                   padding: "8px 12px",
                   background: "var(--white)",
                   outline: "none",
-                  width: 240,
+                  width: 220,
                 }}
               />
             </div>
@@ -401,6 +418,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
 
         {/* Summary */}
         <div
+          className="adm-summary"
           style={{
             display: "flex",
             gap: 12,
@@ -436,23 +454,44 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
               No responses yet.
             </p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
                   <th style={th}>Name</th>
-                  <th style={th}>Email</th>
+                  <th className="adm-col" style={th}>Email</th>
                   <th style={th}>Status</th>
-                  <th style={th}>Meal</th>
-                  <th style={th}>Message</th>
-                  <th style={th}>RSVP&rsquo;d</th>
+                  <th className="adm-col" style={th}>Meal</th>
+                  <th className="adm-col" style={th}>Message</th>
+                  <th className="adm-col" style={th}>RSVP&rsquo;d</th>
                   <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
                 {responded.map((g) => (
                   <tr key={g.id}>
-                    <td style={cell}>{g.name ?? "—"}</td>
-                    <td style={cell}>{g.email ?? "—"}</td>
+                    <td style={cell}>
+                      <button
+                        onClick={() => setDetailGuest(g)}
+                        className="font-sans adm-name-btn"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          margin: 0,
+                          cursor: "pointer",
+                          fontSize: 13,
+                          color: "var(--charcoal)",
+                          textAlign: "left",
+                          textDecoration: "underline",
+                          textDecorationColor: "var(--rule)",
+                          textUnderlineOffset: "3px",
+                        }}
+                      >
+                        {g.name ?? "—"}
+                      </button>
+                      <span className="adm-name-txt">{g.name ?? "—"}</span>
+                    </td>
+                    <td className="adm-col" style={cell}>{g.email ?? "—"}</td>
                     <td style={cell}>
                       <span
                         style={{
@@ -462,9 +501,9 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                         {g.rsvp?.attending ? "Attending" : "Not attending"}
                       </span>
                     </td>
-                    <td style={cell}>{g.rsvp?.mealPreference ?? "—"}</td>
-                    <td style={{ ...cell, maxWidth: 220 }}>{g.rsvp?.message ?? "—"}</td>
-                    <td style={{ ...cell, whiteSpace: "nowrap" }}>{formatDate(g.usedAt)}</td>
+                    <td className="adm-col" style={cell}>{g.rsvp?.mealPreference ?? "—"}</td>
+                    <td className="adm-col" style={{ ...cell, maxWidth: 220 }}>{g.rsvp?.message ?? "—"}</td>
+                    <td className="adm-col" style={{ ...cell, whiteSpace: "nowrap" }}>{formatDate(g.usedAt)}</td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
                       <button
                         onClick={() => openResetModal(g.id)}
@@ -512,21 +551,42 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
               All guests have responded.
             </p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 440 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
                   <th style={th}>Name</th>
-                  <th style={th}>Email</th>
-                  <th style={th}>Added</th>
+                  <th className="adm-col" style={th}>Email</th>
+                  <th className="adm-col" style={th}>Added</th>
                   <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
                 {notResponded.map((g) => (
                   <tr key={g.id}>
-                    <td style={cell}>{g.name ?? "—"}</td>
-                    <td style={cell}>{g.email ?? "—"}</td>
-                    <td style={{ ...cell, whiteSpace: "nowrap" }}>
+                    <td style={cell}>
+                      <button
+                        onClick={() => setDetailGuest(g)}
+                        className="font-sans adm-name-btn"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          margin: 0,
+                          cursor: "pointer",
+                          fontSize: 13,
+                          color: "var(--charcoal)",
+                          textAlign: "left",
+                          textDecoration: "underline",
+                          textDecorationColor: "var(--rule)",
+                          textUnderlineOffset: "3px",
+                        }}
+                      >
+                        {g.name ?? "—"}
+                      </button>
+                      <span className="adm-name-txt">{g.name ?? "—"}</span>
+                    </td>
+                    <td className="adm-col" style={cell}>{g.email ?? "—"}</td>
+                    <td className="adm-col" style={{ ...cell, whiteSpace: "nowrap" }}>
                       {formatDate(g.createdAt)}
                     </td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
@@ -568,6 +628,104 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           )}
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {detailGuest !== null && (() => {
+        const g = detailGuest;
+        const isResponded = g.rsvp !== null;
+        return (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(26, 26, 26, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100,
+              padding: "20px",
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setDetailGuest(null); }}
+          >
+            <div
+              style={{
+                background: "var(--white)",
+                padding: "32px",
+                maxWidth: 400,
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                className="font-sans"
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: "var(--subtle)",
+                  marginBottom: 20,
+                }}
+              >
+                Guest Details
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { label: "Name", value: g.name ?? "—" },
+                  { label: "Email", value: g.email ?? "—" },
+                  ...(isResponded ? [
+                    { label: "Status", value: g.rsvp?.attending ? "Attending" : "Not attending" },
+                    { label: "Meal", value: g.rsvp?.mealPreference ?? "—" },
+                    { label: "Message", value: g.rsvp?.message ?? "—" },
+                    { label: "RSVP'd", value: formatDate(g.usedAt) },
+                  ] : [
+                    { label: "Added", value: formatDate(g.createdAt) },
+                    { label: "Invite sent", value: g.sentAt ? formatDate(g.sentAt) : "Not yet sent" },
+                  ]),
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <div
+                      className="font-sans"
+                      style={{
+                        fontSize: 9,
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        color: "var(--subtle)",
+                        marginBottom: 3,
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      className="font-sans"
+                      style={{ fontSize: 13, color: "var(--charcoal)", lineHeight: 1.5 }}
+                    >
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+                <button
+                  onClick={() => setDetailGuest(null)}
+                  className="font-sans"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    background: "none",
+                    border: "1px solid var(--rule)",
+                    color: "var(--subtle)",
+                    padding: "9px 18px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reset Confirmation Modal */}
       {resetGuestId !== null && (() => {
