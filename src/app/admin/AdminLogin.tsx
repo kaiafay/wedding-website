@@ -23,7 +23,7 @@ export default function AdminLogin() {
     setLoading(false);
 
     if (res.ok) {
-      router.refresh();
+      router.replace('/admin');
     } else {
       setError("Incorrect password.");
       setPassword("");
