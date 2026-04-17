@@ -61,7 +61,7 @@ export default function AdminLogin() {
             autoFocus
             style={{
               fontFamily: "var(--font-dm-sans), sans-serif",
-              fontSize: 14,
+              fontSize: 16,
               padding: "10px 14px",
               border: "1px solid var(--rule)",
               background: "transparent",

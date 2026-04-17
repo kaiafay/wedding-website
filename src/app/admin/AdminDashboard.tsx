@@ -113,6 +113,12 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   // Detail modal
   const [detailGuest, setDetailGuest] = useState<GuestRow | null>(null);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.body.style.overscrollBehavior = 'none';
+    return () => { document.body.style.overscrollBehavior = ''; };
+  }, []);
+
   // Poll for RSVP updates every 30 seconds, paused when tab is hidden
   useEffect(() => {
     async function poll() {
