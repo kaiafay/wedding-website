@@ -31,8 +31,8 @@ export default function RsvpSection({
       style={{ background: "var(--white)", padding: "56px 0 64px" }}
     >
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 24px" }}>
-        {/* No token — public view */}
-        {!token && (
+        {/* Public view — no personal link (used tokens pass token=null from page) */}
+        {!token && !tokenUsed && (
           <div style={{ textAlign: "center" }}>
             <p
               className="font-sans"
@@ -72,7 +72,11 @@ export default function RsvpSection({
             </p>
             <p
               className="font-script"
-              style={{ fontSize: 52, color: "var(--white)", marginBottom: 12 }}
+              style={{
+                fontSize: 52,
+                color: "var(--mauve)",
+                marginBottom: 12,
+              }}
             >
               We got your RSVP
             </p>
@@ -80,20 +84,17 @@ export default function RsvpSection({
               className="font-serif italic"
               style={{
                 fontSize: 16,
-                color: "var(--mauve-light)",
+                color: "var(--subtle)",
                 lineHeight: 1.7,
               }}
             >
-              You&apos;ve already responded to this invitation. If you need to make a
-              change, please reach out to us directly.
+              If you need to make a change, please reach out to us directly.
             </p>
           </div>
         )}
 
         {/* Valid token — envelope + form */}
-        {tokenValid && (
-          <InvitationCard token={token!} guestName={guestName} />
-        )}
+        {tokenValid && <InvitationCard token={token!} guestName={guestName} />}
       </div>
     </section>
   );
