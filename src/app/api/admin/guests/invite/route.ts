@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { guests } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
+import { validateSession } from "@/lib/auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-function validateSession(request: NextRequest): boolean {
-  if (!process.env.ADMIN_PASSWORD) return false;
-  const validToken = createHmac("sha256", process.env.ADMIN_PASSWORD)
-    .update("admin_session")
-    .digest("hex");
-  const cookie = request.cookies.get("admin_session");
-  return cookie?.value === validToken;
-}
 
 function escapeHtml(str: string): string {
   return str
@@ -97,6 +88,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing guestId or note" }, { status: 400 });
   }
 
+  if (note.length > 2000) {
+    return NextResponse.json({ error: "Note exceeds 2000 characters" }, { status: 400 });
+  }
+
   const [guest] = await db.select().from(guests).where(eq(guests.id, guestId));
 
   if (!guest) {
@@ -106,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Guest has no email address" }, { status: 400 });
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
   const rsvpUrl = `${siteUrl}/?token=${guest.token}`;
   const guestName = guest.name ?? "Friend";
 

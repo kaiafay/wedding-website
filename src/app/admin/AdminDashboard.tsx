@@ -110,15 +110,6 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  // Track sent invites optimistically; seed from DB sentAt
-  const [sentGuests, setSentGuests] = useState<Set<number>>(
-    () => new Set(guests.filter((g) => g.sentAt !== null).map((g) => g.id))
-  );
-
-  function isInviteSent(guest: GuestRow): boolean {
-    return guest.sentAt !== null || sentGuests.has(guest.id);
-  }
-
   // Poll for RSVP updates every 30 seconds
   useEffect(() => {
     async function poll() {
@@ -127,15 +118,6 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
         if (!res.ok) return;
         const data = await res.json();
         setGuestList(data.guests);
-        setSentGuests((prev) => {
-          const fromDb = new Set<number>(
-            (data.guests as GuestRow[])
-              .filter((g) => g.sentAt !== null)
-              .map((g) => g.id)
-          );
-          const merged = new Set([...prev, ...fromDb]);
-          return merged;
-        });
       } catch {
         // silently ignore network errors between polls
       }
@@ -228,7 +210,9 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     });
     setInviteLoading(false);
     if (res.ok) {
-      setSentGuests((prev) => new Set([...prev, inviteGuestId]));
+      setGuestList((prev) =>
+        prev.map((g) => g.id === inviteGuestId ? { ...g, sentAt: new Date().toISOString() } : g)
+      );
       closeInviteModal();
     } else {
       const data = await res.json();
@@ -519,7 +503,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                       {formatDate(g.createdAt)}
                     </td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
-                      {isInviteSent(g) ? (
+                      {g.sentAt !== null ? (
                         <span
                           className="font-sans"
                           style={{

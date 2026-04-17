@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { guests } from "@/lib/schema";
-
-function validateSession(request: NextRequest): boolean {
-  if (!process.env.ADMIN_PASSWORD) return false;
-  const validToken = createHmac("sha256", process.env.ADMIN_PASSWORD)
-    .update("admin_session")
-    .digest("hex");
-  const cookie = request.cookies.get("admin_session");
-  return cookie?.value === validToken;
-}
+import { validateSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   if (!validateSession(request)) {
@@ -26,7 +17,12 @@ export async function POST(request: NextRequest) {
   const token = crypto.randomUUID();
 
   try {
-    const [guest] = await db.insert(guests).values({ name, email, token }).returning();
+    const [guest] = await db.insert(guests).values({ name, email, token }).returning({
+      id: guests.id,
+      name: guests.name,
+      email: guests.email,
+      createdAt: guests.createdAt,
+    });
     return NextResponse.json({ guest });
   } catch (err) {
     console.error("Failed to create guest:", err);

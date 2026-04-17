@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { guests, rsvps } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
+const VALID_MEALS = ["Chicken", "Salmon", "Vegetarian"] as const;
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { token, attending, mealPreference, message, name } = body;
@@ -14,7 +16,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate token
+  if (name !== undefined && name !== null && String(name).length > 200) {
+    return NextResponse.json({ error: "Name exceeds 200 characters" }, { status: 400 });
+  }
+
+  if (message !== undefined && message !== null && String(message).length > 1000) {
+    return NextResponse.json({ error: "Message exceeds 1000 characters" }, { status: 400 });
+  }
+
+  if (attending && mealPreference != null && !VALID_MEALS.includes(mealPreference)) {
+    return NextResponse.json({ error: "Invalid meal preference" }, { status: 400 });
+  }
+
   const guest = await db
     .select()
     .from(guests)
@@ -29,14 +42,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Already responded" }, { status: 403 });
   }
 
+  let insertedRsvpId: number | null = null;
+
   try {
-    await db.insert(rsvps).values({
+    const [inserted] = await db.insert(rsvps).values({
       guestId: guest[0].id,
       attending,
       mealPreference: attending ? (mealPreference || null) : null,
       message: message || null,
-    });
+    }).returning({ id: rsvps.id });
+    insertedRsvpId = inserted.id;
+  } catch (err) {
+    console.error("rsvp insert failed for guestId", guest[0].id, ":", err);
+    return NextResponse.json({ error: "Failed to save RSVP" }, { status: 500 });
+  }
 
+  try {
     await db
       .update(guests)
       .set({
@@ -45,7 +66,13 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(guests.id, guest[0].id));
   } catch (err) {
-    console.error("Failed to save RSVP:", err);
+    console.error("guest usedAt update failed for guestId", guest[0].id, "— attempting to remove orphaned rsvp id", insertedRsvpId, ":", err);
+    try {
+      await db.delete(rsvps).where(eq(rsvps.id, insertedRsvpId!));
+      console.error("orphaned rsvp", insertedRsvpId, "removed successfully");
+    } catch (deleteErr) {
+      console.error("failed to remove orphaned rsvp id", insertedRsvpId, "— manual cleanup required:", deleteErr);
+    }
     return NextResponse.json({ error: "Failed to save RSVP" }, { status: 500 });
   }
 

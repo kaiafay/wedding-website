@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
 import { db } from "@/lib/db";
-
-function validateSession(request: NextRequest): boolean {
-  if (!process.env.ADMIN_PASSWORD) return false;
-  const validToken = createHmac("sha256", process.env.ADMIN_PASSWORD)
-    .update("admin_session")
-    .digest("hex");
-  const cookie = request.cookies.get("admin_session");
-  return cookie?.value === validToken;
-}
+import { validateSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   if (!validateSession(request)) {

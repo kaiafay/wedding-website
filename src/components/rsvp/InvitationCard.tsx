@@ -30,14 +30,16 @@ export default function InvitationCard({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
+  const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const risingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
       if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+      if (risingTimerRef.current) clearTimeout(risingTimerRef.current);
+      if (expandingTimerRef.current) clearTimeout(expandingTimerRef.current);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -358,7 +360,7 @@ export default function InvitationCard({
                   transition={{ duration: 1.0, ease: [0.33, 0, 0.2, 1] }}
                   onAnimationComplete={() => {
                     if (stage === "rising")
-                      setTimeout(() => setStage("expanding"), 350);
+                      risingTimerRef.current = setTimeout(() => setStage("expanding"), 350);
                   }}
                   style={{
                     position: "absolute",
@@ -447,7 +449,7 @@ export default function InvitationCard({
             }}
             onAnimationComplete={() => {
               if (stage === "expanding")
-                setTimeout(() => setStage("form"), 200);
+                expandingTimerRef.current = setTimeout(() => setStage("form"), 200);
             }}
             style={{
               width: "100%",
@@ -753,7 +755,7 @@ export default function InvitationCard({
                         className="font-sans"
                         style={{
                           fontSize: 12,
-                          color: "#C05050",
+                          color: "var(--mauve-dark)",
                           marginBottom: 12,
                         }}
                       >

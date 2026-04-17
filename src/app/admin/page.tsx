@@ -1,16 +1,8 @@
 import { cookies } from "next/headers";
-import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
-
-function isAuthenticated(sessionValue: string | undefined): boolean {
-  if (!sessionValue || !process.env.ADMIN_PASSWORD) return false;
-  const validToken = createHmac("sha256", process.env.ADMIN_PASSWORD)
-    .update("admin_session")
-    .digest("hex");
-  return sessionValue === validToken;
-}
+import { isAuthenticated } from "@/lib/auth";
 
 export default async function AdminPage() {
   const cookieStore = await cookies();

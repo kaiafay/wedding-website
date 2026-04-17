@@ -38,35 +38,36 @@ function SectionDivider() {
   );
 }
 
+type TokenState =
+  | { status: "loading" }
+  | { status: "none" }
+  | { status: "valid"; name: string | null; token: string }
+  | { status: "used" };
+
 export default function Home() {
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenValid, setTokenValid] = useState<boolean>(false);
-  const [guestName, setGuestName] = useState<string | null>(null);
-  const [tokenUsed, setTokenUsed] = useState<boolean>(false);
-  const [tokenChecked, setTokenChecked] = useState<boolean>(false);
+  const [tokenState, setTokenState] = useState<TokenState>({ status: "loading" });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token");
 
     if (!t) {
-      setTokenChecked(true);
+      setTokenState({ status: "none" });
       return;
     }
-
-    setToken(t);
 
     fetch(`/api/token?token=${encodeURIComponent(t)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.valid) {
-          setTokenValid(true);
-          setGuestName(data.name || null);
+          setTokenState({ status: "valid", name: data.name || null, token: t });
         } else if (data.reason === "used") {
-          setTokenUsed(true);
+          setTokenState({ status: "used" });
+        } else {
+          setTokenState({ status: "none" });
         }
       })
-      .finally(() => setTokenChecked(true));
+      .catch(() => setTokenState({ status: "none" }));
   }, []);
 
   return (
@@ -78,11 +79,11 @@ export default function Home() {
       <SectionDivider />
       <FaqSection />
       <RsvpSection
-        token={token}
-        tokenValid={tokenValid}
-        tokenChecked={tokenChecked}
-        tokenUsed={tokenUsed}
-        guestName={guestName}
+        token={tokenState.status === "valid" ? tokenState.token : null}
+        tokenValid={tokenState.status === "valid"}
+        tokenChecked={tokenState.status !== "loading"}
+        tokenUsed={tokenState.status === "used"}
+        guestName={tokenState.status === "valid" ? tokenState.name : null}
       />
       <Footer />
     </main>

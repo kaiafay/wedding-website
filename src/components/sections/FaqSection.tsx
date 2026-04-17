@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     q: "Where is the venue and where do I park?",
-    a: "Whitmore Estate, 123 Garden Lane, Bellingham, WA 98225. Parking is available on-site. We recommend arriving 15 minutes early so you're not sprinting to your seat.",
+    a: "Venue to be announced — check back soon. We'll update this page with the full address and parking details once everything is confirmed.",
   },
   {
     q: "Can I bring a plus-one?",
