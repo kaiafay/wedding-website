@@ -7,7 +7,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 const faqs = [
   {
     q: "What's the dress code?",
-    a: "Think smart casual — somewhere between \"I tried\" and \"I dressed up for this.\" Button-ups, blouses, sundresses, maxi dresses, slacks, skirts. Leave the jeans and sneakers at home. You'll thank yourself in the photos.",
+    a: "We’re calling it dressy casual, which is everyone’s least favorite phrase, but you know the drill: look nice, skip the jeans.",
   },
   {
     q: "Where is the venue and where do I park?",
@@ -15,19 +15,19 @@ const faqs = [
   },
   {
     q: "Can I bring a plus-one?",
-    a: "Your invitation will indicate whether a guest is included. If it's not on your invite, we're sorry — we're working with limited space and an unlimited love for you.",
+    a: "Your invitation will indicate whether a guest is included. If it’s not on your invite, we’re sorry. We’re working with limited space and an unlimited love for you.",
   },
   {
     q: "Are kids welcome?",
-    a: "This one's an adults-only celebration. We love your little ones, we promise — but tonight is for the grown-ups.",
+    a: "Please plan for adults only. Nothing against your kids, we're just keeping the headcount small and the guest list grown-up.",
   },
   {
     q: "Where are you registered?",
-    a: "Registry coming soon. Your presence is truly the gift — but if you insist, we won't stop you.",
+    a: "Registry coming soon. Your presence is truly the gift. But if you insist, we won't stop you.",
   },
   {
     q: "What if I cry?",
-    a: "Honestly? Same. Tissues will be provided. No judgment.",
+    a: "You’ll fit right in. Tissues will be provided. Waterproof mascara is on you.",
   },
 ];
 
@@ -127,24 +127,24 @@ export default function FaqSection() {
         }
       `}</style>
       <section style={{ background: "var(--white)", padding: "88px 0" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
-        {/* Header */}
-        <SectionHeader label="Good to Know" title="FAQ" nowrap />
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
+          {/* Header */}
+          <SectionHeader label="Good to Know" title="FAQ" nowrap />
 
-        {/* Accordion */}
-        <div style={{ borderTop: "1px solid var(--rule)" }}>
-          {faqs.map((item, i) => (
-            <FaqItem
-              key={item.q}
-              q={item.q}
-              a={item.a}
-              open={openIndex === i}
-              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-            />
-          ))}
+          {/* Accordion */}
+          <div style={{ borderTop: "1px solid var(--rule)" }}>
+            {faqs.map((item, i) => (
+              <FaqItem
+                key={item.q}
+                q={item.q}
+                a={item.a}
+                open={openIndex === i}
+                onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
     </>
   );
 }

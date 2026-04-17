@@ -4,17 +4,17 @@ const schedule = [
   {
     time: "4:00 pm",
     event: "Ceremony",
-    detail: "Garden Lawn\nWhitmore Estate",
+    detail: "Outdoor-ish plan.\nAddress comes later.",
   },
   {
     time: "5:00 pm",
     event: "Cocktail Hour",
-    detail: "The Terrace\nDrinks & Music",
+    detail: "Drinks and small talk.\nWhere TBD.",
   },
   {
     time: "6:30 pm",
     event: "Reception",
-    detail: "Grand Hall\nDinner & Dancing",
+    detail: "Food, toasts, dance floor.\nDetails to follow.",
   },
 ];
 

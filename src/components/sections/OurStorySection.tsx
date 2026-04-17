@@ -10,25 +10,25 @@ const entries = [
     body: "We went to the same gym for months. We never spoke. Not once. (In our defense, we both had headphones in.)",
   },
   {
-    label: "July 2023",
+    label: "May 2023",
     title: "The DM",
-    body: "Richard slid into Kaia's Instagram DMs. She responded. The rest, as they say, is history — or at least a very long text thread.",
+    body: "Richard slid into Kaia's Instagram DMs. She actually responded. The rest, as they say, is history. Or at least a very long text thread.",
   },
   {
     label: "Us, Actually",
     title: "Black Cat & Golden Retriever",
-    body: "He's a golden retriever in human form. She's a black cat who pretends she doesn't want attention. Together they lift weights, debate games vs. books, and somehow make it work beautifully.",
+    body: "Call it golden retriever energy and black cat energy if you want. Mostly it’s two people who like quiet nights, early gym mornings, and each other’s company more than they admit.",
   },
   {
-    label: "July 2025",
+    label: "November 2025",
     title: "The Hike",
     body: "On a trail at one of their favorite spots, Richard got down on one knee. It was public enough to be a moment, private enough to be theirs.",
   },
 ];
 
 export default function OurStorySection() {
-  const [visibleEntries, setVisibleEntries] = useState<boolean[]>(
-    () => new Array(entries.length).fill(false)
+  const [visibleEntries, setVisibleEntries] = useState<boolean[]>(() =>
+    new Array(entries.length).fill(false),
   );
   const entryRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -39,7 +39,7 @@ export default function OurStorySection() {
           if (obs.isIntersecting) {
             const idx = parseInt(
               (obs.target as HTMLElement).dataset.animIndex!,
-              10
+              10,
             );
             setVisibleEntries((prev) => {
               if (prev[idx]) return prev;
@@ -51,13 +51,19 @@ export default function OurStorySection() {
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.15 },
     );
 
     const refs = entryRefs.current;
-    refs.forEach((ref) => { if (ref) observer.observe(ref); });
+    refs.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
 
-    return () => { refs.forEach((ref) => { if (ref) observer.unobserve(ref); }); };
+    return () => {
+      refs.forEach((ref) => {
+        if (ref) observer.unobserve(ref);
+      });
+    };
   }, []);
 
   return (
@@ -100,12 +106,19 @@ export default function OurStorySection() {
         }
       `}</style>
       <section style={{ background: "var(--white)", padding: "88px 0" }}>
-        <div className="story-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
+        <div
+          className="story-inner"
+          style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}
+        >
           {/* Header */}
-          <SectionHeader label="Our Story" title="How It Started" titleClassName="story-header-script" />
+          <SectionHeader
+            label="Our Story"
+            title="How It Started"
+            titleClassName="story-header-script"
+          />
 
-          {/* Timeline */}
-          <div style={{ position: "relative" }}>
+          {/* Timeline — padding-top clears the first label from the section title; spine runs through it */}
+          <div style={{ position: "relative", paddingTop: 56 }}>
             {/* Vertical spine */}
             <div
               className="story-spine"
@@ -128,15 +141,17 @@ export default function OurStorySection() {
               const dirClass = isRight ? "story-from-left" : "story-from-right";
               const vis = visibleEntries[i] ? "story-visible" : "";
 
-              const labelCls  = `font-sans story-animate ${dirClass} ${vis}`;
-              const titleCls  = `font-script story-entry-title story-animate ${dirClass} story-delay-1 ${vis}`;
-              const bodyCls   = `font-sans story-animate ${dirClass} story-delay-2 ${vis}`;
+              const labelCls = `font-sans story-animate ${dirClass} ${vis}`;
+              const titleCls = `font-script story-entry-title story-animate ${dirClass} story-delay-1 ${vis}`;
+              const bodyCls = `font-sans story-animate ${dirClass} story-delay-2 ${vis}`;
 
               return (
                 <div
                   key={entry.title}
                   className="story-entry"
-                  ref={(el) => { entryRefs.current[i] = el; }}
+                  ref={(el) => {
+                    entryRefs.current[i] = el;
+                  }}
                   data-anim-index={String(i)}
                   style={{
                     display: "grid",
