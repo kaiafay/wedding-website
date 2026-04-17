@@ -14,6 +14,7 @@ export const guests = pgTable("guests", {
   name: text("name"),
   email: text("email"),
   usedAt: timestamp("used_at"),
+  sentAt: timestamp("sent_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

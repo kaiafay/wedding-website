@@ -1,23 +1,19 @@
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { db } from "@/lib/db";
-import AdminLogin from "./AdminLogin";
-import AdminDashboard from "./AdminDashboard";
 
-function isAuthenticated(sessionValue: string | undefined): boolean {
-  if (!sessionValue || !process.env.ADMIN_PASSWORD) return false;
+function validateSession(request: NextRequest): boolean {
+  if (!process.env.ADMIN_PASSWORD) return false;
   const validToken = createHmac("sha256", process.env.ADMIN_PASSWORD)
     .update("admin_session")
     .digest("hex");
-  return sessionValue === validToken;
+  const cookie = request.cookies.get("admin_session");
+  return cookie?.value === validToken;
 }
 
-export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session");
-
-  if (!isAuthenticated(session?.value)) {
-    return <AdminLogin />;
+export async function GET(request: NextRequest) {
+  if (!validateSession(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const allGuests = await db.query.guests.findMany({
@@ -25,7 +21,7 @@ export default async function AdminPage() {
     orderBy: (g, { asc }) => [asc(g.createdAt)],
   });
 
-  const guestData = allGuests.map((g) => ({
+  const guests = allGuests.map((g) => ({
     id: g.id,
     name: g.name,
     email: g.email,
@@ -42,5 +38,5 @@ export default async function AdminPage() {
       : null,
   }));
 
-  return <AdminDashboard guests={guestData} />;
+  return NextResponse.json({ guests });
 }
