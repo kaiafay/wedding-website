@@ -8,7 +8,7 @@ export default function HeroSection() {
           .hero-section { grid-template-columns: 1fr !important; gap: 0.5rem !important; }
           .hero-photo { height: 45vh; }
           .hero-photo img { object-position: 50% 55% !important; }
-          .hero-content { padding: 1rem 2rem !important; }
+          .hero-content { padding: 1rem 2rem 1.5rem !important; }
           .hero-tagline { margin-bottom: 1.25rem !important; }
           .hero-divider { margin-top: 1.25rem !important; margin-bottom: 1.25rem !important; }
           .hero-rsvp-btn { margin-top: 1.5rem !important; }
@@ -29,7 +29,10 @@ export default function HeroSection() {
             alt="Couple"
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
-            style={{ objectFit: "cover", filter: "saturate(0.7) contrast(1.05)" }}
+            style={{
+              objectFit: "cover",
+              filter: "saturate(0.7) contrast(1.05)",
+            }}
             priority
           />
           <div
