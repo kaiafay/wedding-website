@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { animate, motion, AnimatePresence } from "framer-motion";
+import {
+  animate,
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 
 const FLAP_TIP_LEN = 112;
 const FLAP_DURATION_S = 0.75;
@@ -57,39 +63,43 @@ export default function InvitationCard({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const [flapAngle, setFlapAngle] = useState(0);
+
+  // Flap angle as a MotionValue so all derived SVG attributes and seal position
+  // update via direct DOM subscription — no React re-renders on every animation frame.
+  const flapAngle = useMotionValue(0);
+  const flapTipY = useTransform(flapAngle, (v) => Math.cos(v) * FLAP_TIP_LEN);
+  const flapFill = useTransform(flapAngle, (v) => {
+    const cosA = Math.cos(v);
+    const shade = 0.75 + 0.25 * Math.abs(cosA);
+    const blend = (1 - cosA) / 2;
+    const r = Math.round((FLAP_FRONT.r * (1 - blend) + FLAP_INNER.r * blend) * shade);
+    const g = Math.round((FLAP_FRONT.g * (1 - blend) + FLAP_INNER.g * blend) * shade);
+    const b = Math.round((FLAP_FRONT.b * (1 - blend) + FLAP_INNER.b * blend) * shade);
+    return `rgb(${r},${g},${b})`;
+  });
+  const flapPoints = useTransform(flapTipY, (y) => `0,0 320,0 160,${y}`);
+  // Seal fades to 0 as flap passes 40% of its travel; entirely GPU-driven
+  const sealOpacity = useTransform(
+    flapAngle,
+    (v) => Math.max(0, 1 - v / (0.4 * Math.PI)),
+  );
+  // Seal is 48px tall; top:0 + y=(flapTipY-24) keeps its center tracking the flap tip.
+  // left:50% + x:-24 centers it horizontally without changing the layout property.
+  const sealCenterY = useTransform(flapTipY, (y) => y - 24);
 
   useEffect(() => {
     if (stage !== "opening") {
-      if (stage === "idle") setFlapAngle(0);
+      if (stage === "idle") flapAngle.set(0);
       return;
     }
-    setFlapAngle(0);
-    const controls = animate(0, Math.PI, {
+    flapAngle.set(0);
+    const controls = animate(flapAngle, Math.PI, {
       duration: FLAP_DURATION_S,
       ease: easeOutCubic,
-      onUpdate: (v) => setFlapAngle(v),
       onComplete: () => setStage("rising"),
     });
     return () => controls.stop();
-  }, [stage]);
-
-  const cosA = Math.cos(flapAngle);
-  const flapTipY = cosA * FLAP_TIP_LEN;
-  const flapShade = 0.75 + 0.25 * Math.abs(cosA);
-  const openBlend = (1 - cosA) / 2; // 0 = closed (outer), 1 = tip up (inner)
-  const flapRgb = {
-    r: Math.round(
-      (FLAP_FRONT.r * (1 - openBlend) + FLAP_INNER.r * openBlend) * flapShade,
-    ),
-    g: Math.round(
-      (FLAP_FRONT.g * (1 - openBlend) + FLAP_INNER.g * openBlend) * flapShade,
-    ),
-    b: Math.round(
-      (FLAP_FRONT.b * (1 - openBlend) + FLAP_INNER.b * openBlend) * flapShade,
-    ),
-  };
-  const sealOpacityOpening = Math.max(0, 1 - flapAngle / (0.4 * Math.PI));
+  }, [stage, flapAngle]);
 
   const canSubmit =
     name.trim() &&
@@ -212,7 +222,6 @@ export default function InvitationCard({
             key="envelope-phase"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            // Envelope is already visually gone (faded) by the time exit fires
             exit={{ opacity: 0, transition: { duration: 0 } }}
             transition={{ duration: 0.5 }}
             style={{
@@ -221,21 +230,25 @@ export default function InvitationCard({
               alignItems: "center",
             }}
           >
-            {/* Hint — above the envelope, only during idle */}
-            {stage === "idle" && (
-              <p
-                className="font-sans"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.35em",
-                  textTransform: "uppercase",
-                  color: "var(--mauve-light)",
-                  marginBottom: 24,
-                }}
-              >
-                Open your invitation
-              </p>
-            )}
+            {/* Hint — fades out upward on click so the envelope doesn't jump */}
+            <AnimatePresence>
+              {stage === "idle" && (
+                <motion.p
+                  key="hint"
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
+                  className="font-sans"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.35em",
+                    textTransform: "uppercase",
+                    color: "var(--mauve-light)",
+                    marginBottom: 24,
+                  }}
+                >
+                  Open your invitation
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             {/* Bob wrapper + click target */}
             <motion.div
@@ -282,7 +295,7 @@ export default function InvitationCard({
                     zIndex: 2,
                   }}
                 >
-                  {/* Crease lines — true corner diagonals (45°/135° gradients don’t match a non-square box) */}
+                  {/* Crease lines — true corner diagonals (45°/135° gradients don't match a non-square box) */}
                   <svg
                     width={320}
                     height={213}
@@ -315,22 +328,17 @@ export default function InvitationCard({
                   </svg>
                 </motion.div>
 
-                {/* Wax seal — direct child of container so zIndex is in container's stacking
-                    context, above the flap (zIndex 4). Fades with the envelope during rising. */}
+                {/* Wax seal — position and opacity driven entirely by MotionValues.
+                    top:0 + y=sealCenterY keeps the center tracking the flap tip.
+                    left:50% + x=-24 centers it horizontally (seal is 48px wide). */}
                 <motion.div
-                  animate={{
-                    opacity: stage === "rising" ? 0 : sealOpacityOpening,
-                  }}
-                  transition={
-                    stage === "rising"
-                      ? { duration: 0.4, ease: "easeOut", delay: 0.2 }
-                      : { duration: 0 }
-                  }
                   style={{
                     position: "absolute",
-                    top: flapTipY,
+                    top: 0,
                     left: "50%",
-                    transform: "translate(-50%, -50%)",
+                    x: -24,
+                    y: sealCenterY,
+                    opacity: sealOpacity,
                     width: 48,
                     height: 48,
                     borderRadius: "50%",
@@ -364,7 +372,7 @@ export default function InvitationCard({
                     if (stage === "rising")
                       risingTimerRef.current = setTimeout(
                         () => setStage("expanding"),
-                        350,
+                        100,
                       );
                   }}
                   style={{
@@ -400,7 +408,8 @@ export default function InvitationCard({
                   </p>
                 </motion.div>
 
-                {/* Top flap — 2D hinge (tip follows cos(angle)·L), same as envelope_hinge_fixed.html */}
+                {/* Top flap — polygon points and fill are MotionValues that update the
+                    SVG DOM attributes directly, bypassing React re-renders entirely */}
                 <motion.div
                   animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
                   transition={
@@ -426,9 +435,9 @@ export default function InvitationCard({
                     style={{ display: "block" }}
                     aria-hidden
                   >
-                    <polygon
-                      points={`0,0 320,0 160,${flapTipY}`}
-                      fill={`rgb(${flapRgb.r},${flapRgb.g},${flapRgb.b})`}
+                    <motion.polygon
+                      points={flapPoints}
+                      fill={flapFill}
                     />
                   </svg>
                 </motion.div>
@@ -443,14 +452,11 @@ export default function InvitationCard({
         {cardVisible && (
           <motion.div
             key="card-phase"
-            layout
-            initial={{ maxWidth: 280, opacity: 0, y: -40 }}
-            animate={{ maxWidth: 472, opacity: 1, y: 0 }}
+            initial={{ scaleX: 0.593, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
             transition={{
-              maxWidth: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] },
+              scaleX: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] },
               opacity: { duration: 0.5 },
-              y: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] },
-              layout: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] },
             }}
             onAnimationComplete={() => {
               if (stage === "expanding")
@@ -461,6 +467,8 @@ export default function InvitationCard({
             }}
             style={{
               width: "100%",
+              maxWidth: 472,
+              transformOrigin: "center",
               background: "var(--white)",
               boxShadow: "0 4px 40px rgba(0,0,0,0.12)",
               overflow: "hidden",
@@ -510,10 +518,15 @@ export default function InvitationCard({
                 </p>
               </motion.div>
             ) : (
-              <>
-                {/* Mini card content shown while card is expanding */}
+              /* mode="wait" ensures expanding content fades out before form fades in,
+                 eliminating the flash of empty card between stages */
+              <AnimatePresence mode="wait">
                 {stage === "expanding" && (
-                  <div style={{ padding: "18px 24px" }}>
+                  <motion.div
+                    key="expanding-content"
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    style={{ padding: "18px 24px" }}
+                  >
                     <p
                       className="font-script"
                       style={{
@@ -534,12 +547,12 @@ export default function InvitationCard({
                     >
                       July 8, 2027
                     </p>
-                  </div>
+                  </motion.div>
                 )}
 
-                {/* Full form — fades in once card is expanded */}
                 {stage === "form" && (
                   <motion.div
+                    key="form-content"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
@@ -660,68 +673,79 @@ export default function InvitationCard({
                       </div>
                     </div>
 
-                    {/* Meal */}
-                    {attending === true && (
-                      <div style={{ marginBottom: 28 }}>
-                        <label
-                          className="font-sans"
-                          style={{
-                            display: "block",
-                            fontSize: 10,
-                            letterSpacing: "0.3em",
-                            textTransform: "uppercase",
-                            color: "var(--subtle)",
-                            marginBottom: 10,
-                          }}
+                    {/* Meal — AnimatePresence animates height so the card never jumps */}
+                    <AnimatePresence>
+                      {attending === true && (
+                        <motion.div
+                          key="meal-section"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
                         >
-                          Meal Preference
-                        </label>
-                        {MEALS.map((option) => (
-                          <div
-                            key={option}
-                            onClick={() => setMeal(option)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 14,
-                              padding: "13px 0",
-                              borderBottom: "1px solid var(--rule)",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <div
+                          <div style={{ marginBottom: 28 }}>
+                            <label
+                              className="font-sans"
                               style={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: "50%",
-                                border: `1px solid ${meal === option ? "var(--mauve)" : "var(--rule)"}`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
+                                display: "block",
+                                fontSize: 10,
+                                letterSpacing: "0.3em",
+                                textTransform: "uppercase",
+                                color: "var(--subtle)",
+                                marginBottom: 10,
                               }}
                             >
-                              {meal === option && (
+                              Meal Preference
+                            </label>
+                            {MEALS.map((option) => (
+                              <div
+                                key={option}
+                                onClick={() => setMeal(option)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 14,
+                                  padding: "13px 0",
+                                  borderBottom: "1px solid var(--rule)",
+                                  cursor: "pointer",
+                                }}
+                              >
                                 <div
                                   style={{
-                                    width: 7,
-                                    height: 7,
+                                    width: 16,
+                                    height: 16,
                                     borderRadius: "50%",
-                                    background: "var(--mauve)",
+                                    border: `1px solid ${meal === option ? "var(--mauve)" : "var(--rule)"}`,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
                                   }}
-                                />
-                              )}
-                            </div>
-                            <span
-                              className="font-serif"
-                              style={{ fontSize: 17, color: "var(--dark)" }}
-                            >
-                              {option}
-                            </span>
+                                >
+                                  {meal === option && (
+                                    <div
+                                      style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: "50%",
+                                        background: "var(--mauve)",
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <span
+                                  className="font-serif"
+                                  style={{ fontSize: 17, color: "var(--dark)" }}
+                                >
+                                  {option}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Message */}
                     <div style={{ marginBottom: 28 }}>
@@ -781,7 +805,10 @@ export default function InvitationCard({
                         marginTop: 12,
                         background: canSubmit ? "var(--dark)" : "transparent",
                         color: canSubmit ? "var(--white)" : "var(--subtle)",
-                        border: canSubmit ? "none" : "1px solid var(--rule)",
+                        // transparent border holds layout when inactive; no 2px shift on toggle
+                        border: canSubmit
+                          ? "1px solid var(--dark)"
+                          : "1px solid transparent",
                         fontSize: 10,
                         fontWeight: 500,
                         letterSpacing: "0.35em",
@@ -794,7 +821,7 @@ export default function InvitationCard({
                     </button>
                   </motion.div>
                 )}
-              </>
+              </AnimatePresence>
             )}
           </motion.div>
         )}
