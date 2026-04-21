@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Message exceeds 1000 characters" }, { status: 400 });
   }
 
-  if (attending && mealPreference != null && !VALID_MEALS.includes(mealPreference)) {
-    return NextResponse.json({ error: "Invalid meal preference" }, { status: 400 });
+  if (attending && !VALID_MEALS.includes(mealPreference)) {
+    return NextResponse.json({ error: "Meal preference is required when attending" }, { status: 400 });
   }
 
   const guest = await db
