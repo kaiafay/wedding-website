@@ -23,6 +23,13 @@ type Stage = "idle" | "opening" | "rising" | "expanding" | "form";
 
 const MEALS = ["Chicken", "Salmon", "Vegetarian"];
 
+// Reserve vertical space for the column until the form mounts. The envelope
+// stack is 320×213 + the ~38px hint row; the 'expanding' preview is much
+// shorter. Holding a stable minHeight across idle/opening/rising/expanding
+// prevents document shrink → scroll clamp, which was causing FAQ to appear
+// to shift and the footer to flash during the open animation.
+const RESERVED_COLUMN_HEIGHT = 300;
+
 interface InvitationCardProps {
   token: string;
   guestName: string | null;
@@ -208,15 +215,25 @@ export default function InvitationCard({
 
   return (
     <div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        minHeight: RESERVED_COLUMN_HEIGHT,
+      }}
     >
       <style>{`
         @media (max-width: 640px) {
           .rsvp-form-inner { padding: 24px 24px 20px !important; }
         }
       `}</style>
-      {/* ── ENVELOPE PHASE ── */}
-      <AnimatePresence>
+      {/* ── ENVELOPE & CARD PHASES ──
+          Single AnimatePresence with mode="wait" so envelope-phase fully
+          exits before card-phase mounts. Two sibling AnimatePresence blocks
+          would briefly render both as flex children in the same commit,
+          causing a ~94px height spike + snap-back (~11ms) at the
+          rising → expanding boundary — the remaining footer flicker. */}
+      <AnimatePresence mode="wait">
         {envelopeVisible && (
           <motion.div
             key="envelope-phase"
@@ -230,25 +247,29 @@ export default function InvitationCard({
               alignItems: "center",
             }}
           >
-            {/* Hint — fades out upward on click so the envelope doesn't jump */}
-            <AnimatePresence>
-              {stage === "idle" && (
-                <motion.p
-                  key="hint"
-                  exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
-                  className="font-sans"
-                  style={{
-                    fontSize: 10,
-                    letterSpacing: "0.35em",
-                    textTransform: "uppercase",
-                    color: "var(--mauve-light)",
-                    marginBottom: 24,
-                  }}
-                >
-                  Open your invitation
-                </motion.p>
-              )}
-            </AnimatePresence>
+            {/* Hint — always mounted so it continues to occupy layout space
+                after the click; only its opacity/y animates. Unmounting it
+                (via AnimatePresence) caused the envelope to visibly slide
+                up ~38px into the vacated row as the flap started opening. */}
+            <motion.p
+              className="font-sans"
+              animate={
+                stage === "idle"
+                  ? { opacity: 1, y: 0 }
+                  : { opacity: 0, y: -8 }
+              }
+              transition={{ duration: 0.2 }}
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.35em",
+                textTransform: "uppercase",
+                color: "var(--mauve-light)",
+                marginBottom: 24,
+                pointerEvents: "none",
+              }}
+            >
+              Open your invitation
+            </motion.p>
 
             {/* Bob wrapper + click target */}
             <motion.div
@@ -445,10 +466,7 @@ export default function InvitationCard({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
 
-      {/* ── CARD PHASE (expanding → form) ── */}
-      <AnimatePresence>
         {cardVisible && (
           <motion.div
             key="card-phase"
