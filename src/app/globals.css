@@ -8,15 +8,16 @@ html {
 
 :root {
   --white: #f8f8f7;
+  --ivory: #F2EDE4;
   --dark: #1a1a1a;
   --dark-mid: #252525;
-  --charcoal: #2e2e2e;
-  --subtle: #8a8a8a;
-  --mauve: #8e8096;
-  --mauve-light: #b8aebf;
-  --mauve-dark: #6b5f73;
-  --sage: #7a9180;
-  --rule: #d8d8d4;
+  --charcoal: #3D3A3A;
+  --subtle: #8A8178;
+  --mauve: #9B7E97;
+  --mauve-light: #C2AFC0;
+  --mauve-dark: #7A5E75;
+  --sage: #87A399;
+  --rule: #DDD5C8;
 }
 
 

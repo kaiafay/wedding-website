@@ -67,4 +67,4 @@ Inline styles dominate. CSS custom properties (defined in `globals.css`) carry t
 
 ### Hardcoded domain content
 
-Bride: Kaia, Groom: Richard — Date: July 8, 2027 — Location: Bellingham, WA — RSVP deadline: January 1, 2027 — Schedule: 4 pm ceremony, 5 pm cocktails, 6:30 pm reception.
+Bride: Kaia, Groom: Richard — Date: July 10, 2027 (Saturday) — Venue: The Vasak Estate — Location: Ferndale, WA (listed publicly as Bellingham, WA — exact address withheld for now) — RSVP deadline: January 1, 2027 — Schedule: 2 pm ceremony, 3 pm social hour (beer/wine), 4:30 pm reception (dinner, toasts, first dance — no dedicated dance floor).

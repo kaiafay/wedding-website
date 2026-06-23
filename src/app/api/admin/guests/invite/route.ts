@@ -44,7 +44,7 @@ body { margin: 0; padding: 0; background-color: #1a1a1a; }
         <tr>
           <td align="center" style="padding-bottom:48px;">
             <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#8a8a8a;margin:0;">
-              Thursday &middot; July 8th &middot; 2027 &middot; Bellingham, Washington
+              Saturday &middot; July 10th &middot; 2027 &middot; Bellingham, Washington
             </p>
           </td>
         </tr>
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from,
       to: guest.email,
-      subject: "You're Invited — Kaia & Richard, July 8th 2027",
+      subject: "You're Invited — Kaia & Richard, July 10th 2027",
       html: buildEmailHtml(guestName, note, rsvpUrl),
     });
   } catch (err) {

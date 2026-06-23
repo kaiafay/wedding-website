@@ -39,7 +39,7 @@ export default function Footer() {
           color: "var(--mauve-light)",
         }}
       >
-        July 8, 2027
+        July 10, 2027
       </p>
     </footer>
   );

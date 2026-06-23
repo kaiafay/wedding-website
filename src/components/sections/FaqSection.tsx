@@ -11,7 +11,7 @@ const faqs = [
   },
   {
     q: "Where is the venue and where do I park?",
-    a: "Venue to be announced — check back soon. We'll update this page with the full address and parking details once everything is confirmed.",
+    a: "We're getting married at The Vasak Estate in Bellingham, WA. Full address and parking details will be shared closer to the date.",
   },
   {
     q: "Can I bring a plus-one?",

@@ -88,26 +88,14 @@ export default function HeroSection() {
               color: "var(--white)",
             }}
           >
-            Thursday · July 8th · 2027
+            Saturday · July 10th · 2027
           </p>
           <p
             className="font-serif italic mb-1"
             style={{ fontSize: 17, color: "var(--mauve-light)" }}
           >
-            To Be Determined
+            The Vasak Estate · Bellingham, WA
           </p>
-          <p
-            className="font-sans"
-            style={{
-              fontSize: 11,
-              fontWeight: 300,
-              letterSpacing: "0.15em",
-              color: "var(--subtle)",
-            }}
-          >
-            Bellingham, Washington
-          </p>
-
           <button
             onClick={() =>
               document

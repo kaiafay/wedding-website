@@ -401,7 +401,7 @@ export default function InvitationCard({
                     left: 20,
                     right: 20,
                     bottom: 8,
-                    background: "var(--white)",
+                    background: "var(--ivory)",
                     padding: "18px 24px",
                     boxShadow: "0 -2px 12px rgba(0,0,0,0.1)",
                     zIndex: 1,
@@ -425,7 +425,7 @@ export default function InvitationCard({
                       textAlign: "center",
                     }}
                   >
-                    July 8, 2027
+                    July 10, 2027
                   </p>
                 </motion.div>
 
@@ -487,7 +487,7 @@ export default function InvitationCard({
               width: "100%",
               maxWidth: 472,
               transformOrigin: "center",
-              background: "var(--white)",
+              background: "var(--ivory)",
               boxShadow: "0 4px 40px rgba(0,0,0,0.12)",
               overflow: "hidden",
             }}
@@ -563,7 +563,7 @@ export default function InvitationCard({
                         textAlign: "center",
                       }}
                     >
-                      July 8, 2027
+                      July 10, 2027
                     </p>
                   </motion.div>
                 )}

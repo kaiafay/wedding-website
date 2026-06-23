@@ -2,19 +2,19 @@ import SectionHeader from "@/components/ui/SectionHeader";
 
 const schedule = [
   {
-    time: "4:00 pm",
+    time: "2:00 pm",
     event: "Ceremony",
-    detail: "Outdoor-ish plan.\nAddress comes later.",
+    detail: "The part where\nit becomes official.",
   },
   {
-    time: "5:00 pm",
-    event: "Cocktail Hour",
-    detail: "Drinks and small talk.\nWhere TBD.",
+    time: "3:00 pm",
+    event: "Social Hour",
+    detail: "Light bites and fresh air\nbefore we sit down together.",
   },
   {
-    time: "6:30 pm",
-    event: "Reception",
-    detail: "Food, toasts, dance floor.\nDetails to follow.",
+    time: "4:30 pm",
+    event: "Dinner & Toasts",
+    detail: "Good food, kind words,\nand a first dance.",
   },
 ];
 
