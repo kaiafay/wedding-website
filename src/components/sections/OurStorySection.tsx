@@ -105,7 +105,7 @@ export default function OurStorySection() {
           transform: none;
         }
       `}</style>
-      <section style={{ background: "var(--white)", padding: "88px 0" }}>
+      <section id="story" style={{ background: "var(--white)", padding: "88px 0" }}>
         <div
           className="story-inner"
           style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}

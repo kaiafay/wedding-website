@@ -27,7 +27,7 @@ export default function ScheduleSection() {
           .schedule-card { padding: 24px 20px !important; }
         }
       `}</style>
-      <section style={{ background: "var(--white)", padding: "88px 0" }}>
+      <section id="schedule" style={{ background: "var(--white)", padding: "88px 0" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
           {/* Header */}
           <SectionHeader label="The Day" title="Schedule" />

@@ -3,11 +3,11 @@ import { db } from "@/lib/db";
 import { guests, rsvps } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
-const VALID_MEALS = ["Chicken", "Salmon", "Vegetarian"] as const;
+const VALID_MEALS = ["Chicken", "Pork"] as const;
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { token, attending, mealPreference, message, name } = body;
+  const { token, attending, mealPreference, allergies, message, name } = body;
 
   if (!token || attending === undefined || attending === null) {
     return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       guestId: guest[0].id,
       attending,
       mealPreference: attending ? (mealPreference || null) : null,
+      allergies: attending ? (allergies?.trim() || null) : null,
       message: message || null,
     }).returning({ id: rsvps.id });
     insertedRsvpId = inserted.id;

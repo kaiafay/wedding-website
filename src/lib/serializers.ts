@@ -18,6 +18,7 @@ export function serializeGuest(g: GuestWithRsvp) {
           id: g.rsvp.id,
           attending: g.rsvp.attending,
           mealPreference: g.rsvp.mealPreference,
+          allergies: g.rsvp.allergies,
           message: g.rsvp.message,
         }
       : null,

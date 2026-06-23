@@ -126,7 +126,7 @@ export default function FaqSection() {
           .faq-question { letter-spacing: 0.08em !important; font-size: 9px !important; }
         }
       `}</style>
-      <section style={{ background: "var(--white)", padding: "88px 0" }}>
+      <section id="faq" style={{ background: "var(--white)", padding: "88px 0" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
           {/* Header */}
           <SectionHeader label="Good to Know" title="FAQ" nowrap />
@@ -143,6 +143,26 @@ export default function FaqSection() {
               />
             ))}
           </div>
+
+          {/* Contact */}
+          <p
+            className="font-sans"
+            style={{
+              fontSize: 12,
+              fontWeight: 300,
+              color: "var(--subtle)",
+              marginTop: 40,
+              lineHeight: 1.7,
+            }}
+          >
+            Still have questions?{" "}
+            <a
+              href="mailto:kfscheirman18@gmail.com"
+              style={{ color: "var(--mauve)", textDecoration: "none" }}
+            >
+              Send us an email.
+            </a>
+          </p>
         </div>
       </section>
     </>

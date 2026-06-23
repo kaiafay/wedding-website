@@ -15,6 +15,7 @@ export default function HeroSection() {
         }
       `}</style>
       <section
+        id="hero"
         className="min-h-screen grid hero-section"
         style={{
           gridTemplateColumns: "1fr 1fr",

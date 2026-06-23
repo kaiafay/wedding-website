@@ -7,6 +7,7 @@ import ScheduleSection from "@/components/sections/ScheduleSection";
 import FaqSection from "@/components/sections/FaqSection";
 import RsvpSection from "@/components/sections/RsvpSection";
 import Footer from "@/components/sections/Footer";
+import NavBar from "@/components/NavBar";
 
 function SectionDivider() {
   return (
@@ -49,18 +50,16 @@ export default function Home() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-
-    if (!t) {
+    const token = params.get("token");
+    if (!token) {
       setTokenState({ status: "none" });
       return;
     }
-
-    fetch(`/api/token?token=${encodeURIComponent(t)}`)
-      .then((res) => res.json())
+    fetch(`/api/token?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
       .then((data) => {
         if (data.valid) {
-          setTokenState({ status: "valid", name: data.name || null, token: t });
+          setTokenState({ status: "valid", name: data.name, token });
         } else if (data.reason === "used") {
           setTokenState({ status: "used" });
         } else {
@@ -72,6 +71,7 @@ export default function Home() {
 
   return (
     <main>
+      <NavBar />
       <HeroSection />
       <OurStorySection />
       <SectionDivider />

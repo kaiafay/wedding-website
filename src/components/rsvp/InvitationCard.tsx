@@ -21,7 +21,7 @@ function easeOutCubic(t: number) {
 
 type Stage = "idle" | "opening" | "rising" | "expanding" | "form";
 
-const MEALS = ["Chicken", "Salmon", "Vegetarian"];
+const MEALS = ["Chicken", "Pork"];
 
 // Reserve vertical space for the column until the form mounts. The envelope
 // stack is 320×213 + the ~38px hint row; the 'expanding' preview is much
@@ -66,6 +66,7 @@ export default function InvitationCard({
   const [name, setName] = useState(guestName || "");
   const [attending, setAttending] = useState<boolean | null>(null);
   const [meal, setMeal] = useState("");
+  const [allergies, setAllergies] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -183,6 +184,7 @@ export default function InvitationCard({
           token,
           attending,
           mealPreference: meal || null,
+          allergies: allergies || null,
           message,
           name,
         }),
@@ -760,6 +762,53 @@ export default function InvitationCard({
                                 </span>
                               </div>
                             ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Allergies */}
+                    <AnimatePresence initial={false}>
+                      {attending && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div style={{ marginBottom: 28 }}>
+                            <label
+                              className="font-sans"
+                              style={{
+                                display: "block",
+                                fontSize: 10,
+                                letterSpacing: "0.3em",
+                                textTransform: "uppercase",
+                                color: "var(--subtle)",
+                                marginBottom: 10,
+                              }}
+                            >
+                              Allergies or Dietary Restrictions{" "}
+                              <span
+                                className="font-serif italic"
+                                style={{
+                                  fontSize: 13,
+                                  letterSpacing: 0,
+                                  textTransform: "none",
+                                  color: "var(--mauve)",
+                                }}
+                              >
+                                optional
+                              </span>
+                            </label>
+                            <input
+                              type="text"
+                              value={allergies}
+                              onChange={(e) => setAllergies(e.target.value)}
+                              placeholder="e.g. gluten-free, nut allergy…"
+                              style={inputStyle}
+                            />
                           </div>
                         </motion.div>
                       )}

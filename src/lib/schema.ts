@@ -25,6 +25,7 @@ export const rsvps = pgTable("rsvps", {
     .notNull(),
   attending: boolean("attending").notNull(),
   mealPreference: text("meal_preference"),
+  allergies: text("allergies"),
   message: text("message"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

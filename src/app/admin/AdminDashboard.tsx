@@ -9,6 +9,7 @@ type RsvpRow = {
   id: number;
   attending: boolean;
   mealPreference: string | null;
+  allergies: string | null;
   message: string | null;
 };
 
@@ -466,6 +467,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                   <th className="adm-col" style={th}>Email</th>
                   <th style={th}>Status</th>
                   <th className="adm-col" style={th}>Meal</th>
+                  <th className="adm-col" style={th}>Allergies</th>
                   <th className="adm-col" style={th}>Message</th>
                   <th className="adm-col" style={th}>RSVP&rsquo;d</th>
                   <th style={th}></th>
@@ -507,6 +509,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                       </span>
                     </td>
                     <td className="adm-col" style={cell}>{g.rsvp?.mealPreference ?? "—"}</td>
+                    <td className="adm-col" style={cell}>{g.rsvp?.allergies ?? "—"}</td>
                     <td className="adm-col" style={{ ...cell, maxWidth: 220 }}>{g.rsvp?.message ?? "—"}</td>
                     <td className="adm-col" style={{ ...cell, whiteSpace: "nowrap" }}>{formatDate(g.usedAt)}</td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
@@ -680,6 +683,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                   ...(isResponded ? [
                     { label: "Status", value: g.rsvp?.attending ? "Attending" : "Not attending" },
                     { label: "Meal", value: g.rsvp?.mealPreference ?? "—" },
+                    { label: "Allergies", value: g.rsvp?.allergies ?? "—" },
                     { label: "Message", value: g.rsvp?.message ?? "—" },
                     { label: "RSVP'd", value: formatDate(g.usedAt) },
                   ] : [
