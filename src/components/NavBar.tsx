@@ -104,7 +104,7 @@ export default function NavBar() {
       <AnimatePresence>
         {visible && (
           <motion.nav
-            initial={{ opacity: 0, y: -6 }}
+            initial={isHome ? { opacity: 0, y: -6 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.25, ease: [0.33, 0, 0.2, 1] }}

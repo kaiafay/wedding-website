@@ -20,7 +20,7 @@ export default function HeroSection() {
         style={{
           gridTemplateColumns: "1fr 1fr",
           gap: "2rem",
-          background: "var(--dark)",
+          background: "var(--dark-mid)",
         }}
       >
         {/* Photo column */}
@@ -40,7 +40,7 @@ export default function HeroSection() {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to right, transparent 55%, var(--dark) 100%)",
+                "linear-gradient(to right, transparent 55%, var(--dark-mid) 100%)",
             }}
           />
         </div>

@@ -11,11 +11,15 @@ html {
   scroll-margin-top: 72px;
 }
 
+#story {
+  scroll-margin-top: 0;
+}
+
 :root {
   --white: #f8f8f7;
   --ivory: #F2EDE4;
   --dark: #1a1a1a;
-  --dark-mid: #252525;
+  --dark-mid: #2B2A2A;
   --charcoal: #3D3A3A;
   --subtle: #8A8178;
   --mauve: #9B7E97;
