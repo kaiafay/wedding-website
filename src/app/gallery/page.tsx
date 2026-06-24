@@ -33,7 +33,9 @@ export default function GalleryPage() {
       <section style={{ background: "var(--white)", padding: "120px 0 96px", flex: 1 }}>
         <div className="gallery-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
           <SectionHeader label="Photos" title="Gallery" />
-          <GalleryGrid photos={photos} />
+          <div style={{ marginTop: 12 }}>
+            <GalleryGrid photos={photos} />
+          </div>
         </div>
       </section>
 

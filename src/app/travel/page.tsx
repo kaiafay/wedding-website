@@ -71,8 +71,10 @@ export default function TravelPage() {
           .rec-row { flex-direction: column; gap: 8px; }
           .rec-row-name { width: auto !important; }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 600px) {
           .travel-inner { padding: 0 24px !important; }
+          .travel-h1 { font-size: 42px !important; }
+          .travel-section-title { font-size: 34px !important; }
         }
       `}</style>
 
@@ -94,7 +96,7 @@ export default function TravelPage() {
             Getting Here · Bellingham, WA
           </p>
           <h1
-            className="font-script"
+            className="font-script travel-h1"
             style={{ fontSize: 56, color: "var(--charcoal)", lineHeight: 1, marginBottom: 24 }}
           >
             Plan Your Visit
@@ -117,7 +119,7 @@ export default function TravelPage() {
       {/* Getting Here */}
       <section style={{ background: "var(--white)", padding: "72px 0", borderTop: "1px solid var(--rule)" }}>
         <div className="travel-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
-          <SectionHeader label="Logistics" title="Getting Here" />
+          <SectionHeader label="Logistics" title="Getting Here" titleClassName="travel-section-title" />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48 }}>
             {/* Airports */}
@@ -180,7 +182,7 @@ export default function TravelPage() {
       {/* Where to Stay */}
       <section style={{ background: "var(--white)", padding: "72px 0", borderTop: "1px solid var(--rule)" }}>
         <div className="travel-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
-          <SectionHeader label="Accommodations" title="Where to Stay" />
+          <SectionHeader label="Accommodations" title="Where to Stay" titleClassName="travel-section-title" />
 
           <div
             className="hotel-grid"
@@ -226,7 +228,7 @@ export default function TravelPage() {
       {/* While You're Here */}
       <section style={{ background: "var(--white)", padding: "72px 0 96px", borderTop: "1px solid var(--rule)" }}>
         <div className="travel-inner" style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}>
-          <SectionHeader label="Explore" title="While You're Here" />
+          <SectionHeader label="Explore" title="While You're Here" titleClassName="travel-section-title" />
 
           {/* Eat */}
           <p
