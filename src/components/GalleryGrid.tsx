@@ -4,7 +4,20 @@ import { useState, useEffect, useCallback } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
+
 export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
+  const isMobile = useIsMobile();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const close = useCallback(() => setLightboxIndex(null), []);
@@ -58,7 +71,7 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
           transition: transform 0.5s ease;
         }
         .gallery-item:hover img { transform: scale(1.03); }
-        @media (max-width: 768px) { .gallery-grid { columns: 2 !important; } }
+        @media (max-width: 768px) { .gallery-grid { columns: 2 !important; } .gallery-item { cursor: default; } }
         @media (max-width: 480px) { .gallery-grid { columns: 1 !important; } }
       `}</style>
 
@@ -67,7 +80,7 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
           <button
             key={i}
             className="gallery-item"
-            onClick={() => setLightboxIndex(i)}
+            onClick={() => { if (!isMobile) setLightboxIndex(i); }}
             aria-label={`View photo ${i + 1}`}
           >
             <Image

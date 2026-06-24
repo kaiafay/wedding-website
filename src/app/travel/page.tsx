@@ -31,39 +31,31 @@ const hotels = [
 
 const restaurants = [
   {
-    name: "Carnal",
-    desc: "Wood-fired cooking with a seasonal menu. The move for a nicer dinner out.",
+    name: "Mallard's Ice Cream",
+    desc: "A Bellingham institution. Made in-house with rotating seasonal flavors — don't skip it.",
   },
   {
-    name: "Rock and Rye Oyster House",
-    desc: "Local seafood in a historic downtown building. Great cocktails.",
+    name: "Fiamma Burger & Pizza",
+    desc: "Wood-fired Neapolitan pizza in downtown Bellingham. Our go-to for a casual dinner out.",
   },
   {
-    name: "The Black Cat",
-    desc: "Eclectic menu in a restored Victorian house. A true local institution.",
-  },
-  {
-    name: "Boundary Bay Brewery",
-    desc: "Casual and reliable, with a beer garden that's hard to beat on a warm evening.",
+    name: "Chihuahua Mexican Restaurant",
+    desc: "Our favorite Mexican spot, right in Ferndale. Unpretentious and really good — worth a stop while you're in town.",
   },
 ];
 
 const activities = [
   {
-    name: "Whatcom Falls Park",
-    desc: "Easy trails to a 40-foot waterfall. A quick and rewarding walk.",
+    name: "Fairhaven Historic District",
+    desc: "A walkable Victorian neighborhood south of downtown. Stop in at Fairhaven Poke for lunch and Village Books, one of the best independent bookstores in the state.",
   },
   {
     name: "Larrabee State Park",
-    desc: "Washington's oldest state park — forest meets saltwater with views of the San Juans.",
-  },
-  {
-    name: "Fairhaven Historic District",
-    desc: "Walkable Victorian neighborhood with good coffee, independent shops, and waterfront views.",
+    desc: "Washington's oldest state park, where old-growth forest meets saltwater. Short trails with views out to the San Juan Islands.",
   },
   {
     name: "Mount Baker",
-    desc: "A day trip worth taking for alpine scenery. About an hour's drive east.",
+    desc: "An hour east into the Cascades, where Kaia grew up skiing. The drive to Artist Point is worth it even if you never leave the car.",
   },
 ];
 
@@ -72,10 +64,12 @@ export default function TravelPage() {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <style>{`
         .hotel-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-        .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1px; background: var(--rule); border: 1px solid var(--rule); }
+        .rec-row { display: flex; gap: 40px; padding: 20px 0; }
+        .rec-row-name { flex-shrink: 0; width: 200px; }
         @media (max-width: 768px) {
           .hotel-grid { grid-template-columns: 1fr !important; }
-          .rec-grid { grid-template-columns: 1fr !important; }
+          .rec-row { flex-direction: column; gap: 8px; }
+          .rec-row-name { width: auto !important; }
         }
         @media (max-width: 640px) {
           .travel-inner { padding: 0 24px !important; }
@@ -97,7 +91,7 @@ export default function TravelPage() {
               marginBottom: 20,
             }}
           >
-            July 10, 2027 · Bellingham, WA
+            Getting Here · Bellingham, WA
           </p>
           <h1
             className="font-script"
@@ -115,7 +109,7 @@ export default function TravelPage() {
               maxWidth: 560,
             }}
           >
-            Bellingham is a beautiful corner of the Pacific Northwest — mountain views, easy waterfront walks, and some genuinely good restaurants. Here&apos;s everything you need to plan your trip.
+            Bellingham is a beautiful corner of the Pacific Northwest, tucked between the mountains and the bay. Mountain views, easy waterfront walks, and a food scene worth exploring. Here&apos;s everything you need to plan your trip.
           </p>
         </div>
       </section>
@@ -247,13 +241,13 @@ export default function TravelPage() {
           >
             Eat
           </p>
-          <div className="rec-grid" style={{ marginBottom: 48 }}>
+          <div style={{ marginBottom: 48 }}>
             {restaurants.map((r) => (
-              <div key={r.name} style={{ background: "var(--white)", padding: "24px 28px" }}>
-                <p className="font-serif italic" style={{ fontSize: 17, color: "var(--charcoal)", marginBottom: 6 }}>
+              <div key={r.name} className="rec-row">
+                <p className="font-serif italic rec-row-name" style={{ fontSize: 17, color: "var(--charcoal)", margin: 0 }}>
                   {r.name}
                 </p>
-                <p className="font-sans" style={{ fontSize: 12, fontWeight: 300, color: "var(--subtle)", lineHeight: 1.6 }}>
+                <p className="font-sans" style={{ fontSize: 13, fontWeight: 300, color: "var(--subtle)", lineHeight: 1.7, margin: 0 }}>
                   {r.desc}
                 </p>
               </div>
@@ -273,13 +267,13 @@ export default function TravelPage() {
           >
             Do
           </p>
-          <div className="rec-grid">
+          <div>
             {activities.map((a) => (
-              <div key={a.name} style={{ background: "var(--white)", padding: "24px 28px" }}>
-                <p className="font-serif italic" style={{ fontSize: 17, color: "var(--charcoal)", marginBottom: 6 }}>
+              <div key={a.name} className="rec-row">
+                <p className="font-serif italic rec-row-name" style={{ fontSize: 17, color: "var(--charcoal)", margin: 0 }}>
                   {a.name}
                 </p>
-                <p className="font-sans" style={{ fontSize: 12, fontWeight: 300, color: "var(--subtle)", lineHeight: 1.6 }}>
+                <p className="font-sans" style={{ fontSize: 13, fontWeight: 300, color: "var(--subtle)", lineHeight: 1.7, margin: 0 }}>
                   {a.desc}
                 </p>
               </div>

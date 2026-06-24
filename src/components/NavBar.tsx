@@ -187,14 +187,14 @@ export default function NavBar() {
               position: "fixed",
               inset: 0,
               zIndex: 200,
-              background: "var(--charcoal)",
+              background: "var(--dark-mid)",
               display: "flex",
               flexDirection: "column",
             }}
           >
             {/* Overlay top row */}
             <div style={{
-              padding: "0 24px",
+              padding: "0 24px 0 48px",
               height: 52,
               display: "flex",
               alignItems: "center",
