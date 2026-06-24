@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
   }
 
   const token = crypto.randomUUID();
+  const saveTheDateToken = crypto.randomUUID();
 
   try {
-    const [guest] = await db.insert(guests).values({ name, email, token }).returning({
+    const [guest] = await db.insert(guests).values({ name, email, token, saveTheDateToken }).returning({
       id: guests.id,
       name: guests.name,
       email: guests.email,

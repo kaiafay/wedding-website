@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const DEFAULT_NOTE = "We'd love to celebrate with you. Click the link below to RSVP.";
+const DEFAULT_NOTE =
+  "We'd love to celebrate with you. Click the link below to RSVP.";
 
 type RsvpRow = {
   id: number;
@@ -19,6 +20,8 @@ type GuestRow = {
   email: string | null;
   usedAt: string | null;
   sentAt: string | null;
+  saveTheDateSentAt: string | null;
+  hasSaveTheDateToken: boolean;
   createdAt: string;
   rsvp: RsvpRow | null;
 };
@@ -93,6 +96,10 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   const attending = responded.filter((g) => g.rsvp?.attending);
   const notAttending = responded.filter((g) => !g.rsvp?.attending);
   const notResponded = guestList.filter((g) => g.rsvp === null);
+  const stdSent = guestList.filter((g) => g.saveTheDateSentAt !== null);
+  const unsentStdCount = guestList.filter(
+    (g) => g.saveTheDateSentAt === null && g.email !== null && g.hasSaveTheDateToken,
+  ).length;
 
   // Add guest form
   const [addName, setAddName] = useState("");
@@ -114,9 +121,21 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   // Detail modal
   const [detailGuest, setDetailGuest] = useState<GuestRow | null>(null);
 
+  // Send save the dates
+  const [sendStdConfirmOpen, setSendStdConfirmOpen] = useState(false);
+  const [sendStdLoading, setSendStdLoading] = useState(false);
+  const [sendStdError, setSendStdError] = useState<string | null>(null);
+  const [sendStdResult, setSendStdResult] = useState<{
+    sent: number;
+    failed: number;
+    skipped: number;
+  } | null>(null);
+
   useEffect(() => {
-    document.documentElement.style.overscrollBehavior = 'none';
-    return () => { document.documentElement.style.overscrollBehavior = ''; };
+    document.documentElement.style.overscrollBehavior = "none";
+    return () => {
+      document.documentElement.style.overscrollBehavior = "";
+    };
   }, []);
 
   // Poll for RSVP updates every 30 seconds, paused when tab is hidden
@@ -190,7 +209,16 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     setResetLoading(false);
     if (res.ok) {
       setGuestList((prev) =>
-        prev.map((g) => g.id === resetGuestId ? { ...g, rsvp: null, usedAt: null, sentAt: null } : g)
+        prev.map((g) =>
+          g.id === resetGuestId
+            ? {
+                ...g,
+                rsvp: null,
+                usedAt: null,
+                sentAt: null,
+              }
+            : g,
+        ),
       );
       closeResetModal();
     } else {
@@ -213,7 +241,17 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
       const g = data.guest;
       setGuestList((prev) => [
         ...prev,
-        { id: g.id, name: g.name, email: g.email, usedAt: null, sentAt: null, createdAt: g.createdAt, rsvp: null },
+        {
+          id: g.id,
+          name: g.name,
+          email: g.email,
+          usedAt: null,
+          sentAt: null,
+          saveTheDateSentAt: null,
+          hasSaveTheDateToken: true,
+          createdAt: g.createdAt,
+          rsvp: null,
+        },
       ]);
       setAddName("");
       setAddEmail("");
@@ -235,6 +273,38 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     setInviteError(null);
   }
 
+  async function handleSendSaveDates() {
+    setSendStdLoading(true);
+    setSendStdError(null);
+    const res = await fetch("/api/admin/send-save-the-date", {
+      method: "POST",
+    });
+    setSendStdLoading(false);
+    if (res.ok) {
+      const data = await res.json();
+      const results: { id: number; status: string }[] = data.results ?? [];
+      const sentIds = new Set<number>(
+        results.filter((r) => r.status === "sent").map((r) => r.id),
+      );
+      const sent = sentIds.size;
+      const failed = results.filter((r) => r.status === "failed").length;
+      const skipped = data.skipped ?? 0;
+      const now = new Date().toISOString();
+      setGuestList((prev) =>
+        prev.map((g) =>
+          sentIds.has(g.id) ? { ...g, saveTheDateSentAt: now } : g,
+        ),
+      );
+      setSendStdResult({ sent, failed, skipped });
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setSendStdError(
+        (data as { error?: string }).error ??
+          "Failed to send. Please try again.",
+      );
+    }
+  }
+
   async function handleSendInvite() {
     if (!inviteGuestId) return;
     setInviteLoading(true);
@@ -247,7 +317,11 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     setInviteLoading(false);
     if (res.ok) {
       setGuestList((prev) =>
-        prev.map((g) => g.id === inviteGuestId ? { ...g, sentAt: new Date().toISOString() } : g)
+        prev.map((g) =>
+          g.id === inviteGuestId
+            ? { ...g, sentAt: new Date().toISOString() }
+            : g,
+        ),
       );
       closeInviteModal();
     } else {
@@ -256,9 +330,10 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     }
   }
 
-  const inviteGuest = inviteGuestId !== null
-    ? guestList.find((g) => g.id === inviteGuestId) ?? null
-    : null;
+  const inviteGuest =
+    inviteGuestId !== null
+      ? (guestList.find((g) => g.id === inviteGuestId) ?? null)
+      : null;
 
   return (
     <div
@@ -297,7 +372,12 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
         >
           <p
             className="font-script"
-            style={{ fontSize: 36, color: "var(--charcoal)", lineHeight: 1, margin: 0 }}
+            style={{
+              fontSize: 36,
+              color: "var(--charcoal)",
+              lineHeight: 1,
+              margin: 0,
+            }}
           >
             RSVPs
           </p>
@@ -341,12 +421,22 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           </div>
           <form
             onSubmit={handleAddGuest}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "flex-end",
+            }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label
                 className="font-sans"
-                style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--subtle)" }}
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--subtle)",
+                }}
               >
                 Name
               </label>
@@ -371,7 +461,12 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label
                 className="font-sans"
-                style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--subtle)" }}
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--subtle)",
+                }}
               >
                 Email
               </label>
@@ -415,11 +510,78 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           {addError && (
             <p
               className="font-sans"
-              style={{ fontSize: 12, color: "var(--mauve-dark)", marginTop: 10, marginBottom: 0 }}
+              style={{
+                fontSize: 12,
+                color: "var(--mauve-dark)",
+                marginTop: 10,
+                marginBottom: 0,
+              }}
             >
               {addError}
             </p>
           )}
+        </div>
+
+        {/* Send Save the Dates */}
+        <div
+          style={{
+            marginBottom: 40,
+            padding: "28px 32px",
+            border: "1px solid var(--rule)",
+          }}
+        >
+          <div
+            className="font-sans"
+            style={{
+              fontSize: 9,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--subtle)",
+              marginBottom: 12,
+            }}
+          >
+            Save the Dates
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <p
+              className="font-sans"
+              style={{ fontSize: 13, color: "var(--subtle)", margin: 0 }}
+            >
+              {unsentStdCount > 0
+                ? `${unsentStdCount} guest${unsentStdCount === 1 ? "" : "s"} haven't received a save the date yet.`
+                : "All guests have received a save the date."}
+            </p>
+            {unsentStdCount > 0 && (
+              <button
+                onClick={() => {
+                  setSendStdConfirmOpen(true);
+                  setSendStdError(null);
+                  setSendStdResult(null);
+                }}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "var(--mauve)",
+                  color: "var(--white)",
+                  border: "none",
+                  padding: "9px 18px",
+                  cursor: "pointer",
+                }}
+              >
+                Send Save the Dates
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Summary */}
@@ -433,6 +595,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           }}
         >
           <SummaryCard label="Invited" value={guestList.length} />
+          <SummaryCard label="Dates sent" value={stdSent.length} />
           <SummaryCard label="Responded" value={responded.length} />
           <SummaryCard label="Attending" value={attending.length} />
           <SummaryCard label="Not attending" value={notAttending.length} />
@@ -455,7 +618,11 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           {responded.length === 0 ? (
             <p
               className="font-sans"
-              style={{ fontSize: 13, color: "var(--subtle)", padding: "12px 0" }}
+              style={{
+                fontSize: 13,
+                color: "var(--subtle)",
+                padding: "12px 0",
+              }}
             >
               No responses yet.
             </p>
@@ -464,12 +631,22 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
               <thead>
                 <tr>
                   <th style={th}>Name</th>
-                  <th className="adm-col" style={th}>Email</th>
+                  <th className="adm-col" style={th}>
+                    Email
+                  </th>
                   <th style={th}>Status</th>
-                  <th className="adm-col" style={th}>Meal</th>
-                  <th className="adm-col" style={th}>Allergies</th>
-                  <th className="adm-col" style={th}>Message</th>
-                  <th className="adm-col" style={th}>RSVP&rsquo;d</th>
+                  <th className="adm-col" style={th}>
+                    Meal
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Allergies
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Message
+                  </th>
+                  <th className="adm-col" style={th}>
+                    RSVP&rsquo;d
+                  </th>
                   <th style={th}></th>
                 </tr>
               </thead>
@@ -498,20 +675,35 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                       </button>
                       <span className="adm-name-txt">{g.name ?? "—"}</span>
                     </td>
-                    <td className="adm-col" style={cell}>{g.email ?? "—"}</td>
+                    <td className="adm-col" style={cell}>
+                      {g.email ?? "—"}
+                    </td>
                     <td style={cell}>
                       <span
                         style={{
-                          color: g.rsvp?.attending ? "var(--sage)" : "var(--mauve-dark)",
+                          color: g.rsvp?.attending
+                            ? "var(--sage)"
+                            : "var(--mauve-dark)",
                         }}
                       >
                         {g.rsvp?.attending ? "Attending" : "Not attending"}
                       </span>
                     </td>
-                    <td className="adm-col" style={cell}>{g.rsvp?.mealPreference ?? "—"}</td>
-                    <td className="adm-col" style={cell}>{g.rsvp?.allergies ?? "—"}</td>
-                    <td className="adm-col" style={{ ...cell, maxWidth: 220 }}>{g.rsvp?.message ?? "—"}</td>
-                    <td className="adm-col" style={{ ...cell, whiteSpace: "nowrap" }}>{formatDate(g.usedAt)}</td>
+                    <td className="adm-col" style={cell}>
+                      {g.rsvp?.mealPreference ?? "—"}
+                    </td>
+                    <td className="adm-col" style={cell}>
+                      {g.rsvp?.allergies ?? "—"}
+                    </td>
+                    <td className="adm-col" style={{ ...cell, maxWidth: 220 }}>
+                      {g.rsvp?.message ?? "—"}
+                    </td>
+                    <td
+                      className="adm-col"
+                      style={{ ...cell, whiteSpace: "nowrap" }}
+                    >
+                      {formatDate(g.usedAt)}
+                    </td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
                       <button
                         onClick={() => openResetModal(g.id)}
@@ -554,7 +746,11 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           {notResponded.length === 0 ? (
             <p
               className="font-sans"
-              style={{ fontSize: 13, color: "var(--subtle)", padding: "12px 0" }}
+              style={{
+                fontSize: 13,
+                color: "var(--subtle)",
+                padding: "12px 0",
+              }}
             >
               All guests have responded.
             </p>
@@ -563,8 +759,15 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
               <thead>
                 <tr>
                   <th style={th}>Name</th>
-                  <th className="adm-col" style={th}>Email</th>
-                  <th className="adm-col" style={th}>Added</th>
+                  <th className="adm-col" style={th}>
+                    Email
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Added
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Save the Date
+                  </th>
                   <th style={th}></th>
                 </tr>
               </thead>
@@ -593,9 +796,39 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                       </button>
                       <span className="adm-name-txt">{g.name ?? "—"}</span>
                     </td>
-                    <td className="adm-col" style={cell}>{g.email ?? "—"}</td>
-                    <td className="adm-col" style={{ ...cell, whiteSpace: "nowrap" }}>
+                    <td className="adm-col" style={cell}>
+                      {g.email ?? "—"}
+                    </td>
+                    <td
+                      className="adm-col"
+                      style={{ ...cell, whiteSpace: "nowrap" }}
+                    >
                       {formatDate(g.createdAt)}
+                    </td>
+                    <td
+                      className="adm-col"
+                      style={{ ...cell, whiteSpace: "nowrap" }}
+                    >
+                      {g.saveTheDateSentAt !== null ? (
+                        <span
+                          className="font-sans"
+                          style={{
+                            fontSize: 9,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            color: "var(--sage)",
+                          }}
+                        >
+                          Sent ✓
+                        </span>
+                      ) : (
+                        <span
+                          className="font-sans"
+                          style={{ fontSize: 12, color: "var(--subtle)" }}
+                        >
+                          —
+                        </span>
+                      )}
                     </td>
                     <td style={{ ...cell, whiteSpace: "nowrap" }}>
                       {g.sentAt !== null ? (
@@ -638,197 +871,440 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
       </div>
 
       {/* Detail Modal */}
-      {detailGuest !== null && (() => {
-        const g = detailGuest;
-        const isResponded = g.rsvp !== null;
-        return (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(26, 26, 26, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 100,
-              padding: "20px",
-            }}
-            onClick={(e) => { if (e.target === e.currentTarget) setDetailGuest(null); }}
-          >
+      {detailGuest !== null &&
+        (() => {
+          const g = detailGuest;
+          const isResponded = g.rsvp !== null;
+          return (
             <div
               style={{
-                background: "var(--white)",
-                padding: "32px",
-                maxWidth: 400,
-                width: "100%",
-                boxSizing: "border-box",
+                position: "fixed",
+                inset: 0,
+                background: "rgba(26, 26, 26, 0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 100,
+                padding: "20px",
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setDetailGuest(null);
               }}
             >
               <div
-                className="font-sans"
                 style={{
-                  fontSize: 9,
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  color: "var(--subtle)",
-                  marginBottom: 20,
+                  background: "var(--white)",
+                  padding: "32px",
+                  maxWidth: 400,
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
-                Guest Details
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { label: "Name", value: g.name ?? "—" },
-                  { label: "Email", value: g.email ?? "—" },
-                  ...(isResponded ? [
-                    { label: "Status", value: g.rsvp?.attending ? "Attending" : "Not attending" },
-                    { label: "Meal", value: g.rsvp?.mealPreference ?? "—" },
-                    { label: "Allergies", value: g.rsvp?.allergies ?? "—" },
-                    { label: "Message", value: g.rsvp?.message ?? "—" },
-                    { label: "RSVP'd", value: formatDate(g.usedAt) },
-                  ] : [
-                    { label: "Added", value: formatDate(g.createdAt) },
-                    { label: "Invite sent", value: g.sentAt ? formatDate(g.sentAt) : "Not yet sent" },
-                  ]),
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <div
-                      className="font-sans"
-                      style={{
-                        fontSize: 9,
-                        letterSpacing: "0.15em",
-                        textTransform: "uppercase",
-                        color: "var(--subtle)",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {label}
-                    </div>
-                    <div
-                      className="font-sans"
-                      style={{ fontSize: 13, color: "var(--charcoal)", lineHeight: 1.5 }}
-                    >
-                      {value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
-                <button
-                  onClick={() => setDetailGuest(null)}
+                <div
                   className="font-sans"
                   style={{
-                    fontSize: 10,
+                    fontSize: 9,
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
-                    background: "none",
-                    border: "1px solid var(--rule)",
                     color: "var(--subtle)",
-                    padding: "9px 18px",
-                    cursor: "pointer",
+                    marginBottom: 20,
                   }}
                 >
-                  Close
-                </button>
+                  Guest Details
+                </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
+                >
+                  {[
+                    { label: "Name", value: g.name ?? "—" },
+                    { label: "Email", value: g.email ?? "—" },
+                    ...(isResponded
+                      ? [
+                          {
+                            label: "Status",
+                            value: g.rsvp?.attending
+                              ? "Attending"
+                              : "Not attending",
+                          },
+                          {
+                            label: "Meal",
+                            value: g.rsvp?.mealPreference ?? "—",
+                          },
+                          {
+                            label: "Allergies",
+                            value: g.rsvp?.allergies ?? "—",
+                          },
+                          { label: "Message", value: g.rsvp?.message ?? "—" },
+                          { label: "RSVP'd", value: formatDate(g.usedAt) },
+                        ]
+                      : [
+                          { label: "Added", value: formatDate(g.createdAt) },
+                          {
+                            label: "Save the date sent",
+                            value: g.saveTheDateSentAt
+                              ? formatDate(g.saveTheDateSentAt)
+                              : "Not yet sent",
+                          },
+                          {
+                            label: "Invite sent",
+                            value: g.sentAt
+                              ? formatDate(g.sentAt)
+                              : "Not yet sent",
+                          },
+                        ]),
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <div
+                        className="font-sans"
+                        style={{
+                          fontSize: 9,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: "var(--subtle)",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        className="font-sans"
+                        style={{
+                          fontSize: 13,
+                          color: "var(--charcoal)",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: 24,
+                  }}
+                >
+                  <button
+                    onClick={() => setDetailGuest(null)}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Reset Confirmation Modal */}
-      {resetGuestId !== null && (() => {
-        const guest = guestList.find((g) => g.id === resetGuestId);
-        return (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(26, 26, 26, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 100,
-              padding: "20px",
-            }}
-            onClick={(e) => { if (e.target === e.currentTarget) closeResetModal(); }}
-          >
+      {resetGuestId !== null &&
+        (() => {
+          const guest = guestList.find((g) => g.id === resetGuestId);
+          return (
             <div
               style={{
-                background: "var(--white)",
-                padding: "32px",
-                maxWidth: 400,
-                width: "100%",
-                boxSizing: "border-box",
+                position: "fixed",
+                inset: 0,
+                background: "rgba(26, 26, 26, 0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 100,
+                padding: "20px",
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) closeResetModal();
               }}
             >
               <div
-                className="font-sans"
                 style={{
-                  fontSize: 9,
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  color: "var(--subtle)",
-                  marginBottom: 6,
+                  background: "var(--white)",
+                  padding: "32px",
+                  maxWidth: 400,
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
-                Reset RSVP
-              </div>
-              <div
-                className="font-sans"
-                style={{ fontSize: 14, color: "var(--charcoal)", marginBottom: 20, lineHeight: 1.5 }}
-              >
-                Allow {guest?.name ?? "this guest"} to submit a new response?
-              </div>
-              {resetError && (
-                <p
-                  className="font-sans"
-                  style={{ fontSize: 12, color: "var(--mauve-dark)", marginBottom: 16, marginTop: 0 }}
-                >
-                  {resetError}
-                </p>
-              )}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button
-                  onClick={closeResetModal}
-                  disabled={resetLoading}
+                <div
                   className="font-sans"
                   style={{
-                    fontSize: 10,
+                    fontSize: 9,
                     letterSpacing: "0.18em",
                     textTransform: "uppercase",
-                    background: "none",
-                    border: "1px solid var(--rule)",
                     color: "var(--subtle)",
-                    padding: "9px 18px",
-                    cursor: "pointer",
+                    marginBottom: 6,
                   }}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmReset}
-                  disabled={resetLoading}
+                  Reset RSVP
+                </div>
+                <div
                   className="font-sans"
                   style={{
-                    fontSize: 10,
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    background: "var(--charcoal)",
-                    color: "var(--white)",
-                    border: "none",
-                    padding: "9px 18px",
-                    cursor: resetLoading ? "default" : "pointer",
-                    opacity: resetLoading ? 0.6 : 1,
+                    fontSize: 14,
+                    color: "var(--charcoal)",
+                    marginBottom: 20,
+                    lineHeight: 1.5,
                   }}
                 >
-                  {resetLoading ? "Resetting…" : "Reset"}
-                </button>
+                  Allow {guest?.name ?? "this guest"} to submit a new response?
+                </div>
+                {resetError && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--mauve-dark)",
+                      marginBottom: 16,
+                      marginTop: 0,
+                    }}
+                  >
+                    {resetError}
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    onClick={closeResetModal}
+                    disabled={resetLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmReset}
+                    disabled={resetLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "var(--charcoal)",
+                      color: "var(--white)",
+                      border: "none",
+                      padding: "9px 18px",
+                      cursor: resetLoading ? "default" : "pointer",
+                      opacity: resetLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {resetLoading ? "Resetting…" : "Reset"}
+                  </button>
+                </div>
               </div>
             </div>
+          );
+        })()}
+
+      {/* Send Save the Dates Modal */}
+      {sendStdConfirmOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(26, 26, 26, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !sendStdLoading)
+              setSendStdConfirmOpen(false);
+          }}
+        >
+          <div
+            style={{
+              background: "var(--white)",
+              padding: "32px",
+              maxWidth: 400,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 6,
+              }}
+            >
+              Send Save the Dates
+            </div>
+            {sendStdResult !== null ? (
+              <>
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 14,
+                    color: "var(--charcoal)",
+                    marginBottom: 8,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {sendStdResult.failed === 0
+                    ? `${sendStdResult.sent} save the date${sendStdResult.sent === 1 ? "" : "s"} sent successfully.`
+                    : `Sent ${sendStdResult.sent}, failed ${sendStdResult.failed}.`}
+                </p>
+                {sendStdResult.skipped > 0 && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--subtle)",
+                      marginBottom: 8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {sendStdResult.skipped} guest
+                    {sendStdResult.skipped === 1 ? "" : "s"} skipped — no email
+                    or link on file.
+                  </p>
+                )}
+                {sendStdResult.failed > 0 && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--mauve-dark)",
+                      marginBottom: 8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Failed guests were not marked as sent and will be retried on
+                    the next send.
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: 16,
+                  }}
+                >
+                  <button
+                    onClick={() => setSendStdConfirmOpen(false)}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 14,
+                    color: "var(--charcoal)",
+                    marginBottom: 20,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Send a save the date email to {unsentStdCount} guest{" "}
+                  {unsentStdCount === 1 ? "" : "s"} who haven&rsquo;t received
+                  one yet?
+                </p>
+                {sendStdError && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--mauve-dark)",
+                      marginBottom: 16,
+                      marginTop: 0,
+                    }}
+                  >
+                    {sendStdError}
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    onClick={() => setSendStdConfirmOpen(false)}
+                    disabled={sendStdLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendSaveDates}
+                    disabled={sendStdLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "var(--mauve)",
+                      color: "var(--white)",
+                      border: "none",
+                      padding: "9px 18px",
+                      cursor: sendStdLoading ? "default" : "pointer",
+                      opacity: sendStdLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {sendStdLoading ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* Invite Modal */}
       {inviteGuestId !== null && inviteGuest && (
@@ -843,7 +1319,9 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
             zIndex: 100,
             padding: "20px",
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) closeInviteModal(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeInviteModal();
+          }}
         >
           <div
             style={{
@@ -868,9 +1346,14 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
             </div>
             <div
               className="font-sans"
-              style={{ fontSize: 14, color: "var(--charcoal)", marginBottom: 20 }}
+              style={{
+                fontSize: 14,
+                color: "var(--charcoal)",
+                marginBottom: 20,
+              }}
             >
-              {inviteGuest.name ?? "Guest"}{inviteGuest.email ? ` · ${inviteGuest.email}` : ""}
+              {inviteGuest.name ?? "Guest"}
+              {inviteGuest.email ? ` · ${inviteGuest.email}` : ""}
             </div>
             <div
               className="font-sans"
@@ -905,12 +1388,24 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
             {inviteError && (
               <p
                 className="font-sans"
-                style={{ fontSize: 12, color: "var(--mauve-dark)", marginTop: 8, marginBottom: 0 }}
+                style={{
+                  fontSize: 12,
+                  color: "var(--mauve-dark)",
+                  marginTop: 8,
+                  marginBottom: 0,
+                }}
               >
                 {inviteError}
               </p>
             )}
-            <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                marginTop: 20,
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={closeInviteModal}
                 disabled={inviteLoading}

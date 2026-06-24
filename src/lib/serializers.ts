@@ -12,6 +12,8 @@ export function serializeGuest(g: GuestWithRsvp) {
     email: g.email,
     usedAt: g.usedAt?.toISOString() ?? null,
     sentAt: g.sentAt?.toISOString() ?? null,
+    saveTheDateSentAt: g.saveTheDateSentAt?.toISOString() ?? null,
+    hasSaveTheDateToken: g.saveTheDateToken !== null,
     createdAt: g.createdAt.toISOString(),
     rsvp: g.rsvp
       ? {

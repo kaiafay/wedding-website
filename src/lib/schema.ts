@@ -13,8 +13,10 @@ export const guests = pgTable("guests", {
   token: text("token").notNull().unique(),
   name: text("name"),
   email: text("email"),
+  saveTheDateToken: text("save_the_date_token").unique(),
   usedAt: timestamp("used_at"),
   sentAt: timestamp("sent_at"),
+  saveTheDateSentAt: timestamp("save_the_date_sent_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
