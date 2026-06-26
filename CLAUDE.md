@@ -25,7 +25,7 @@ No test suite is configured.
 - **Framer Motion 12** for envelope animation and transitions
 - **Resend** is installed but not yet wired into the RSVP flow
 
-Required env vars: `DATABASE_URL` (Neon connection string), `ADMIN_PASSWORD` (not yet used).
+Required env vars: `DATABASE_URL` (Neon connection string), `ADMIN_PASSWORD` (not yet used), `WISHES_PASSPHRASE` (passphrase for posting to `/wishes`).
 
 ## Architecture
 

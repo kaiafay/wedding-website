@@ -39,3 +39,17 @@ export const guestsRelations = relations(guests, ({ one }) => ({
 export const rsvpsRelations = relations(rsvps, ({ one }) => ({
   guest: one(guests, { fields: [rsvps.guestId], references: [guests.id] }),
 }));
+
+export const wishes = pgTable("wishes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  message: text("message").notNull(),
+  hidden: boolean("hidden").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const wishPostAttempts = pgTable("wish_post_attempts", {
+  id: serial("id").primaryKey(),
+  ipHash: text("ip_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

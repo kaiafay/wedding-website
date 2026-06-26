@@ -26,6 +26,14 @@ type GuestRow = {
   rsvp: RsvpRow | null;
 };
 
+type WishRow = {
+  id: number;
+  name: string;
+  message: string;
+  hidden: boolean;
+  createdAt: string;
+};
+
 const cell: React.CSSProperties = {
   fontFamily: "var(--font-dm-sans), sans-serif",
   fontSize: 13,
@@ -88,9 +96,17 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
+export default function AdminDashboard({
+  guests,
+  wishes: initialWishes,
+}: {
+  guests: GuestRow[];
+  wishes: WishRow[];
+}) {
   const router = useRouter();
   const [guestList, setGuestList] = useState<GuestRow[]>(guests);
+  const [wishList, setWishList] = useState<WishRow[]>(initialWishes);
+  const [wishActionError, setWishActionError] = useState<string | null>(null);
 
   const responded = guestList.filter((g) => g.rsvp !== null);
   const attending = responded.filter((g) => g.rsvp?.attending);
@@ -100,6 +116,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
   const unsentStdCount = guestList.filter(
     (g) => g.saveTheDateSentAt === null && g.email !== null && g.hasSaveTheDateToken,
   ).length;
+  const visibleWishes = wishList.filter((w) => !w.hidden);
 
   // Add guest form
   const [addName, setAddName] = useState("");
@@ -184,7 +201,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.refresh();
+    router.push("/");
   }
 
   function openResetModal(guestId: number) {
@@ -327,6 +344,29 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
     } else {
       const data = await res.json();
       setInviteError(data.error ?? "Failed to send invite");
+    }
+  }
+
+  async function handleToggleWishHidden(id: number, hidden: boolean) {
+    setWishActionError(null);
+    try {
+      const res = await fetch(`/api/admin/wishes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setWishActionError(
+          (data as { error?: string }).error ?? "Failed to update wish.",
+        );
+        return;
+      }
+      setWishList((prev) =>
+        prev.map((w) => (w.id === id ? (data.wish as WishRow) : w)),
+      );
+    } catch {
+      setWishActionError("Failed to update wish.");
     }
   }
 
@@ -599,6 +639,7 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
           <SummaryCard label="Responded" value={responded.length} />
           <SummaryCard label="Attending" value={attending.length} />
           <SummaryCard label="Not attending" value={notAttending.length} />
+          <SummaryCard label="Wishes" value={visibleWishes.length} />
         </div>
 
         {/* RSVP table */}
@@ -861,6 +902,100 @@ export default function AdminDashboard({ guests }: { guests: GuestRow[] }) {
                           Send Invite
                         </button>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Wishes table */}
+        <div
+          className="font-sans"
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--subtle)",
+            marginTop: 48,
+            marginBottom: 14,
+          }}
+        >
+          Wishes ({wishList.length})
+        </div>
+        {wishActionError && (
+          <p
+            className="font-sans"
+            style={{
+              fontSize: 12,
+              color: "var(--mauve-dark)",
+              marginTop: -4,
+              marginBottom: 14,
+            }}
+          >
+            {wishActionError}
+          </p>
+        )}
+        <div style={{ overflowX: "auto" }}>
+          {wishList.length === 0 ? (
+            <p
+              className="font-sans"
+              style={{
+                fontSize: 13,
+                color: "var(--subtle)",
+                padding: "12px 0",
+              }}
+            >
+              No wishes yet.
+            </p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Name</th>
+                  <th style={th}>Message</th>
+                  <th className="adm-col" style={th}>
+                    Posted
+                  </th>
+                  <th style={th}>Status</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {wishList.map((w) => (
+                  <tr key={w.id}>
+                    <td style={cell}>{w.name}</td>
+                    <td style={{ ...cell, maxWidth: 360 }}>{w.message}</td>
+                    <td className="adm-col" style={cell}>
+                      {formatDate(w.createdAt)}
+                    </td>
+                    <td style={cell}>
+                      <span
+                        style={{
+                          color: w.hidden ? "var(--mauve-dark)" : "var(--sage)",
+                        }}
+                      >
+                        {w.hidden ? "Hidden" : "Visible"}
+                      </span>
+                    </td>
+                    <td style={cell}>
+                      <button
+                        onClick={() => handleToggleWishHidden(w.id, !w.hidden)}
+                        className="font-sans"
+                        style={{
+                          fontSize: 10,
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                          background: "none",
+                          border: "1px solid var(--rule)",
+                          color: "var(--subtle)",
+                          padding: "6px 10px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {w.hidden ? "Show" : "Hide"}
+                      </button>
                     </td>
                   </tr>
                 ))}

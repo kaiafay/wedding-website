@@ -16,6 +16,7 @@ const overlayLinks = [
   { label: "FAQ", anchor: "faq" },
   { label: "Travel", href: "/travel" },
   { label: "Gallery", href: "/gallery" },
+  { label: "Wishes", href: "/wishes" },
 ];
 
 export default function NavBar() {
@@ -147,6 +148,7 @@ export default function NavBar() {
                 ))}
                 <a href="/travel" className="nav-link font-sans">Travel</a>
                 <a href="/gallery" className="nav-link font-sans">Gallery</a>
+                <a href="/wishes" className="nav-link font-sans">Wishes</a>
                 <a href={href("rsvp")} className="nav-rsvp font-sans">RSVP</a>
               </div>
 
