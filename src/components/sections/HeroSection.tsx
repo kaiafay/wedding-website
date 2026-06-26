@@ -1,6 +1,22 @@
+"use client";
+
 import Image from "next/image";
+import { motion, useReducedMotion } from "framer-motion";
+
+const EASE: [number, number, number, number] = [0.25, 0, 0.2, 1];
+
+function fadeUp(delay: number, duration = 0.85, reduced = false) {
+  if (reduced) return { initial: false as const };
+  return {
+    initial: { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration, ease: EASE, delay },
+  };
+}
 
 export default function HeroSection() {
+  const reduced = useReducedMotion() ?? false;
+
   return (
     <>
       <style>{`
@@ -24,7 +40,12 @@ export default function HeroSection() {
         }}
       >
         {/* Photo column */}
-        <div className="relative overflow-hidden hero-photo">
+        <motion.div
+          className="relative overflow-hidden hero-photo"
+          initial={reduced ? false : { opacity: 0, scale: 1.02 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.95, ease: EASE }}
+        >
           <Image
             src="/0G5A5201.webp"
             alt="Couple"
@@ -43,11 +64,12 @@ export default function HeroSection() {
                 "linear-gradient(to right, transparent 55%, var(--dark-mid) 100%)",
             }}
           />
-        </div>
+        </motion.div>
 
         {/* Content column */}
         <div className="flex flex-col justify-center hero-content px-16 py-20">
-          <p
+          <motion.p
+            {...fadeUp(0.15, 0.65, reduced)}
             className="font-sans hero-tagline mb-8"
             style={{
               fontSize: 10,
@@ -58,7 +80,7 @@ export default function HeroSection() {
             }}
           >
             Together with their families
-          </p>
+          </motion.p>
 
           <div
             className="font-script"
@@ -68,19 +90,36 @@ export default function HeroSection() {
               lineHeight: 1.05,
             }}
           >
-            <span>Kaia</span>
-            <span className="block" style={{ color: "var(--mauve)" }}>
+            <motion.span {...fadeUp(0.23, 0.65, reduced)} style={{ display: "block" }}>
+              Kaia
+            </motion.span>
+            <motion.span
+              {...fadeUp(0.31, 0.65, reduced)}
+              className="block"
+              style={{ color: "var(--mauve)" }}
+            >
               &
-            </span>
-            <span>Richard</span>
+            </motion.span>
+            <motion.span {...fadeUp(0.39, 0.65, reduced)} style={{ display: "block" }}>
+              Richard
+            </motion.span>
           </div>
 
-          <div
+          <motion.div
             className="my-9 hero-divider"
-            style={{ width: 40, height: 1, background: "var(--mauve)" }}
+            initial={reduced ? false : { scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 0.45, ease: EASE, delay: reduced ? 0 : 0.47 }}
+            style={{
+              width: 40,
+              height: 1,
+              background: "var(--mauve)",
+              transformOrigin: "left",
+            }}
           />
 
-          <p
+          <motion.p
+            {...fadeUp(0.55, 0.65, reduced)}
             className="font-serif mb-2"
             style={{
               fontSize: 14,
@@ -90,20 +129,22 @@ export default function HeroSection() {
             }}
           >
             Saturday · July 10th · 2027
-          </p>
-          <p
+          </motion.p>
+          <motion.p
+            {...fadeUp(0.63, 0.65, reduced)}
             className="font-serif italic mb-1"
             style={{ fontSize: 17, color: "var(--mauve-light)" }}
           >
             The Vasak Estate · Bellingham, WA
-          </p>
-          <button
+          </motion.p>
+          <motion.button
+            {...fadeUp(0.71, 0.65, reduced)}
             onClick={() =>
               document
                 .getElementById("rsvp")
                 ?.scrollIntoView({ behavior: "smooth" })
             }
-            className="mt-12 hero-rsvp-btn self-start flex items-center gap-3 transition-all duration-300"
+            className="mt-12 hero-rsvp-btn self-start flex items-center gap-3 transition-[background] duration-300"
             style={{
               padding: "14px 32px",
               background: "transparent",
@@ -123,7 +164,7 @@ export default function HeroSection() {
             }
           >
             RSVP <span>→</span>
-          </button>
+          </motion.button>
         </div>
       </section>
     </>

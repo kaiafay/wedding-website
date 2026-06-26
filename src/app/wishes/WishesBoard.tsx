@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
 import { WISH_MESSAGE_MAX, WISH_NAME_MAX } from "@/lib/wishes-constants";
 
 const PASSPHRASE_KEY = "wishes_passphrase";
@@ -28,6 +28,32 @@ const inputStyle: React.CSSProperties = {
 };
 
 const EASE: [number, number, number, number] = [0.25, 0, 0.2, 1];
+const VIEWPORT = { once: true, margin: "-80px" } as const;
+
+function seededUnit(seed: number, salt: number) {
+  let value = Math.imul(seed ^ Math.imul(salt, 0x9e3779b1), 0x85ebca6b);
+  value ^= value >>> 13;
+  value = Math.imul(value, 0xc2b2ae35);
+  value ^= value >>> 16;
+  return (value >>> 0) / 4294967295;
+}
+
+function bloomMs(value: number) {
+  return `${Math.round(value)}ms`;
+}
+
+function bloomDeg(value: number) {
+  return `${value.toFixed(3)}deg`;
+}
+
+function whisperFade(delay: number, duration = 0.85, reduced = false) {
+  if (reduced) return { initial: false as const };
+  return {
+    initial: { opacity: 0, scale: 0.985 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { duration, ease: EASE, delay },
+  };
+}
 
 export default function WishesBoard({
   initialWishes,
@@ -43,6 +69,35 @@ export default function WishesBoard({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [showPassphraseField, setShowPassphraseField] = useState(true);
+  const initialWishIds = useRef(new Set(initialWishes.map((w) => w.id)));
+  const reduced = useReducedMotion() ?? false;
+  const wallRef = useRef<HTMLDivElement>(null);
+  const wallInView = useInView(wallRef, { once: true, margin: "-80px" });
+  const [wallInInitialViewport, setWallInInitialViewport] = useState(false);
+  const wallVisible = reduced || wallInView || wallInInitialViewport;
+  const bloomOrderById = useMemo(() => {
+    return new Map(
+      wishes
+        .filter((wish) => initialWishIds.current.has(wish.id))
+        .map((wish) => wish.id)
+        .sort((a, b) => seededUnit(a, 7) - seededUnit(b, 7))
+        .map((id, order) => [id, order]),
+    );
+  }, [wishes]);
+
+  useEffect(() => {
+    if (reduced) return;
+
+    const frame = requestAnimationFrame(() => {
+      const wall = wallRef.current;
+      if (!wall) return;
+
+      const rect = wall.getBoundingClientRect();
+      setWallInInitialViewport(rect.top < window.innerHeight && rect.bottom > 0);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [reduced]);
 
   useEffect(() => {
     const savedPassphrase = sessionStorage.getItem(PASSPHRASE_KEY);
@@ -136,6 +191,38 @@ export default function WishesBoard({
           break-inside: avoid;
           margin-bottom: 12px;
         }
+        .wishes-card-bloom {
+          animation: wishes-bloom var(--bloom-duration) var(--bloom-ease) both;
+          animation-delay: var(--bloom-delay);
+          transform-origin: 50% 72%;
+          will-change: opacity, transform;
+        }
+        .wishes-card-waiting {
+          opacity: 0;
+          transform: scale(0.94) rotate(var(--bloom-from-rotate));
+        }
+        .wishes-card-visible {
+          opacity: 1;
+          transform: scale(1) rotate(var(--bloom-to-rotate));
+        }
+        .wishes-card-new {
+          animation-delay: 40ms;
+        }
+        @keyframes wishes-bloom {
+          0% {
+            opacity: 0;
+            transform: scale(0.94) rotate(var(--bloom-from-rotate));
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) rotate(var(--bloom-to-rotate));
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .wishes-card-bloom {
+            animation: none;
+          }
+        }
         @media (max-width: 768px) {
           .wishes-grid { columns: 2 !important; }
         }
@@ -150,47 +237,52 @@ export default function WishesBoard({
           className="wishes-inner"
           style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}
         >
-          <p
-            className="font-sans"
-            style={{
-              fontSize: 10,
-              letterSpacing: "0.35em",
-              textTransform: "uppercase",
-              color: "var(--mauve)",
-              marginBottom: 20,
-            }}
-          >
-            Notes &amp; Cheers
-          </p>
-          <h1
-            className="font-script wishes-h1"
-            style={{
-              fontSize: 56,
-              color: "var(--charcoal)",
-              lineHeight: 1,
-              marginBottom: 24,
-            }}
-          >
-            Wishes
-          </h1>
-          <p
-            className="font-sans"
-            style={{
-              fontSize: 15,
-              fontWeight: 300,
-              color: "var(--subtle)",
-              lineHeight: 1.8,
-              maxWidth: 560,
-              marginBottom: 48,
-            }}
-          >
-            A little wall of love from our people near and far. You&apos;ll need
-            the passphrase to leave a note — reach out if you need it.
-          </p>
+          <div>
+            <motion.p
+              {...whisperFade(0.03, 0.66, reduced)}
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.35em",
+                textTransform: "uppercase",
+                color: "var(--mauve)",
+                marginBottom: 20,
+              }}
+            >
+              Notes &amp; Cheers
+            </motion.p>
+            <motion.h1
+              {...whisperFade(0.12, 0.72, reduced)}
+              className="font-script wishes-h1"
+              style={{
+                fontSize: 56,
+                color: "var(--charcoal)",
+                lineHeight: 1,
+                marginBottom: 24,
+              }}
+            >
+              Wishes
+            </motion.h1>
+            <motion.p
+              {...whisperFade(0.21, 0.72, reduced)}
+              className="font-sans"
+              style={{
+                fontSize: 15,
+                fontWeight: 300,
+                color: "var(--subtle)",
+                lineHeight: 1.8,
+                maxWidth: 560,
+                marginBottom: 48,
+              }}
+            >
+              A little wall of love from our people near and far. You&apos;ll need
+              the passphrase to leave a note — reach out if you need it.
+            </motion.p>
+          </div>
 
           <form onSubmit={handleSubmit} style={{ maxWidth: 480, marginBottom: 56 }}>
             {showPassphraseField ? (
-              <div style={{ marginBottom: 28 }}>
+              <motion.div {...whisperFade(0.32, 0.64, reduced)} style={{ marginBottom: 28 }}>
                 <label
                   className="font-sans"
                   style={{
@@ -211,9 +303,9 @@ export default function WishesBoard({
                   autoComplete="off"
                   style={inputStyle}
                 />
-              </div>
+              </motion.div>
             ) : (
-              <div style={{ marginBottom: 28 }}>
+              <motion.div {...whisperFade(0.32, 0.64, reduced)} style={{ marginBottom: 28 }}>
                 <p
                   className="font-sans"
                   style={{
@@ -241,10 +333,10 @@ export default function WishesBoard({
                     Change
                   </button>
                 </p>
-              </div>
+              </motion.div>
             )}
 
-            <div style={{ marginBottom: 28 }}>
+            <motion.div {...whisperFade(0.4, 0.64, reduced)} style={{ marginBottom: 28 }}>
               <label
                 className="font-sans"
                 style={{
@@ -265,9 +357,9 @@ export default function WishesBoard({
                 maxLength={WISH_NAME_MAX}
                 style={inputStyle}
               />
-            </div>
+            </motion.div>
 
-            <div style={{ marginBottom: 12 }}>
+            <motion.div {...whisperFade(0.48, 0.64, reduced)} style={{ marginBottom: 12 }}>
               <label
                 className="font-sans"
                 style={{
@@ -293,7 +385,7 @@ export default function WishesBoard({
                   borderBottom: "1px solid var(--rule)",
                 }}
               />
-            </div>
+            </motion.div>
 
             {message.length >= WISH_MESSAGE_MAX - 40 && (
               <p
@@ -325,10 +417,10 @@ export default function WishesBoard({
             <AnimatePresence>
               {success && (
                 <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, ease: EASE }}
+                  transition={{ duration: 0.5, ease: EASE }}
                   style={{ marginBottom: 20 }}
                 >
                   <p
@@ -351,38 +443,48 @@ export default function WishesBoard({
               )}
             </AnimatePresence>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="font-sans wishes-submit"
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.3em",
-                textTransform: "uppercase",
-                padding: "14px 32px",
-                background: "transparent",
-                border: "1px solid var(--mauve)",
-                color: "var(--mauve)",
-                cursor: submitting ? "default" : "pointer",
-                opacity: submitting ? 0.6 : 1,
-                transition: "background 0.2s ease, color 0.2s ease",
-              }}
-            >
-              {submitting ? "Posting…" : "Leave a note"}
-            </button>
+            <motion.div {...whisperFade(0.58, 0.64, reduced)}>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="font-sans wishes-submit"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.3em",
+                  textTransform: "uppercase",
+                  padding: "14px 32px",
+                  background: "transparent",
+                  border: "1px solid var(--mauve)",
+                  color: "var(--mauve)",
+                  cursor: submitting ? "default" : "pointer",
+                  opacity: submitting ? 0.6 : 1,
+                  transition: "background 0.2s ease, color 0.2s ease",
+                }}
+              >
+                {submitting ? "Posting…" : "Leave a note"}
+              </button>
+            </motion.div>
           </form>
 
-          <div
+          <motion.div
+            initial={reduced ? false : { scaleX: 0, opacity: 0.4 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 0.76, ease: EASE, delay: reduced ? 0 : 0.68 }}
             style={{
               height: 1,
               background: "var(--rule)",
               marginBottom: 56,
               maxWidth: 900,
+              transformOrigin: "center",
             }}
           />
 
           {wishes.length === 0 ? (
-            <p
+            <motion.p
+              initial={reduced ? false : { opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={VIEWPORT}
+              transition={{ duration: 0.85, ease: EASE }}
               className="font-serif italic"
               style={{
                 fontSize: 17,
@@ -393,22 +495,43 @@ export default function WishesBoard({
               }}
             >
               Be the first to leave a note. We&apos;d love to hear from you.
-            </p>
+            </motion.p>
           ) : (
-            <div className="wishes-grid">
-              <AnimatePresence initial={false}>
-                {wishes.map((wish) => (
-                  <motion.div
+            <div ref={wallRef} className="wishes-grid">
+              {wishes.map((wish) => {
+                const isNew = !initialWishIds.current.has(wish.id);
+                const shouldBloom = isNew || wallVisible;
+                const bloomOrder = bloomOrderById.get(wish.id) ?? 0;
+                const settleRotate = (seededUnit(wish.id, 1) - 0.5) * 0.6;
+                const fromRotate =
+                  settleRotate + (seededUnit(wish.id, 6) - 0.5) * 1.1;
+                const delay = isNew
+                  ? "40ms"
+                  : bloomMs(180 + bloomOrder * 260 + seededUnit(wish.id, 4) * 70);
+                const duration = bloomMs(1120 + seededUnit(wish.id, 5) * 180);
+
+                return (
+                  <div
                     key={wish.id}
-                    className="wishes-card"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease: EASE }}
+                    className={`wishes-card${
+                      reduced
+                        ? " wishes-card-visible"
+                        : shouldBloom
+                          ? " wishes-card-bloom"
+                          : " wishes-card-waiting"
+                    }${
+                      isNew ? " wishes-card-new" : ""
+                    }`}
                     style={{
                       background: "var(--white)",
                       border: "1px solid var(--rule)",
                       padding: "28px 24px",
-                    }}
+                      "--bloom-delay": delay,
+                      "--bloom-duration": duration,
+                      "--bloom-ease": "cubic-bezier(0.25, 0, 0.2, 1)",
+                      "--bloom-from-rotate": bloomDeg(fromRotate),
+                      "--bloom-to-rotate": bloomDeg(settleRotate),
+                    } as React.CSSProperties}
                   >
                     <p
                       className="font-serif italic"
@@ -435,9 +558,9 @@ export default function WishesBoard({
                     >
                       — {wish.name}
                     </p>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

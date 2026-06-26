@@ -1,19 +1,58 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq = window.matchMedia("(max-width: 768px)");
+      mq.addEventListener("change", onStoreChange);
+      return () => mq.removeEventListener("change", onStoreChange);
+    },
+    () => window.matchMedia("(max-width: 768px)").matches,
+    () => false,
+  );
+}
+
+function FadeInImage({
+  src,
+  alt,
+  sizes,
+  fill,
+  style,
+  className,
+}: {
+  src: StaticImageData;
+  alt: string;
+  sizes: string;
+  fill?: boolean;
+  style?: React.CSSProperties;
+  className?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const setImageRef = useCallback((img: HTMLImageElement | null) => {
+    imgRef.current = img;
+    if (img?.complete) {
+      setLoaded(true);
+    }
   }, []);
-  return isMobile;
+
+  return (
+    <Image
+      ref={setImageRef}
+      src={src}
+      alt={alt}
+      fill={fill}
+      placeholder="blur"
+      sizes={sizes}
+      onLoad={() => setLoaded(true)}
+      className={[className, loaded ? "is-loaded" : ""].filter(Boolean).join(" ")}
+      style={style}
+    />
+  );
 }
 
 export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
@@ -68,9 +107,16 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
           display: block;
           width: 100%;
           height: auto;
-          transition: transform 0.5s ease;
+          opacity: 0;
+          transform: scale(1.02);
+          transition: opacity 0.6s ease, transform 0.6s ease;
         }
-        .gallery-item:hover img { transform: scale(1.03); }
+        .gallery-item img.is-loaded {
+          opacity: 1;
+          transform: scale(1);
+        }
+        .gallery-item:hover img.is-loaded { transform: scale(1.03); }
+        .lightbox-img { opacity: 1; }
         @media (max-width: 768px) { .gallery-grid { columns: 2 !important; } .gallery-item { cursor: default; } }
         @media (max-width: 480px) { .gallery-grid { columns: 1 !important; } }
       `}</style>
@@ -83,10 +129,9 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
             onClick={() => { if (!isMobile) setLightboxIndex(i); }}
             aria-label={`View photo ${i + 1}`}
           >
-            <Image
+            <FadeInImage
               src={photo}
               alt=""
-              placeholder="blur"
               sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
               style={{ width: "100%", height: "auto" }}
             />
@@ -196,12 +241,12 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
                   transition={{ duration: 0.35, ease: "easeInOut" }}
                   style={{ position: "absolute", inset: 0 }}
                 >
-                  <Image
+                  <FadeInImage
                     src={photos[lightboxIndex]}
                     alt=""
                     fill
-                    placeholder="blur"
                     sizes="90vw"
+                    className="lightbox-img"
                     style={{ objectFit: "contain" }}
                   />
                 </motion.div>
