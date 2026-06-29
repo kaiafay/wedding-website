@@ -1,12 +1,15 @@
 import { ImageResponse } from "next/og";
-import { loadOgFonts } from "@/lib/og-fonts";
+import { loadGreatVibes } from "@/lib/og-fonts";
+import { MonogramImage, monogramColors } from "@/lib/monogram-image";
 
-export const alt = "Kaia and Richard wedding — July 10, 2027 in Bellingham, Washington";
+export const alt = "Kaia & Richard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+const MARK_SIZE = 560;
+
 export default async function OpenGraphImage() {
-  const fonts = await loadOgFonts();
+  const greatVibes = await loadGreatVibes();
 
   return new ImageResponse(
     (
@@ -15,66 +18,12 @@ export default async function OpenGraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#2B2A2A",
-          padding: "64px",
+          background: monogramColors.background,
         }}
       >
-        <p
-          style={{
-            margin: 0,
-            fontFamily: "Cormorant",
-            fontSize: 18,
-            letterSpacing: "0.35em",
-            textTransform: "uppercase",
-            color: "#C2AFC0",
-          }}
-        >
-          Together with their families
-        </p>
-        <p
-          style={{
-            margin: "24px 0 0",
-            fontFamily: "Great Vibes",
-            fontSize: 112,
-            color: "#f8f8f7",
-            lineHeight: 1,
-          }}
-        >
-          Kaia &amp; Richard
-        </p>
-        <div
-          style={{
-            width: 48,
-            height: 1,
-            background: "#9B7E97",
-            margin: "36px 0",
-          }}
-        />
-        <p
-          style={{
-            margin: 0,
-            fontFamily: "Cormorant",
-            fontSize: 28,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: "#f8f8f7",
-          }}
-        >
-          Saturday · July 10th · 2027
-        </p>
-        <p
-          style={{
-            margin: "16px 0 0",
-            fontFamily: "Cormorant Italic",
-            fontSize: 32,
-            color: "#C2AFC0",
-          }}
-        >
-          The Vasak Estate · Bellingham, WA
-        </p>
+        <MonogramImage size={MARK_SIZE} />
       </div>
     ),
     {
@@ -82,21 +31,9 @@ export default async function OpenGraphImage() {
       fonts: [
         {
           name: "Great Vibes",
-          data: fonts.greatVibes,
+          data: greatVibes,
           style: "normal",
           weight: 400,
-        },
-        {
-          name: "Cormorant",
-          data: fonts.cormorantLight,
-          style: "normal",
-          weight: 300,
-        },
-        {
-          name: "Cormorant Italic",
-          data: fonts.cormorantItalic,
-          style: "italic",
-          weight: 300,
         },
       ],
     },
