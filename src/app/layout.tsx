@@ -51,6 +51,9 @@ export const metadata: Metadata = {
   appleWebApp: {
     title: shareTitle,
   },
+  icons: {
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({

@@ -14,23 +14,54 @@ export default async function AppleIcon() {
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#2B2A2A",
+          position: "relative",
+          background: "#9B7E97",
+          overflow: "hidden",
         }}
       >
-        <p
+        <div
           style={{
-            margin: 0,
+            display: "flex",
+            position: "absolute",
+            left: 12,
+            top: 8,
             fontFamily: "Great Vibes",
-            fontSize: 108,
+            fontSize: 78,
             color: "#f8f8f7",
             lineHeight: 1,
-            transform: "translateY(6px)",
           }}
         >
-          K&amp;R
-        </p>
+          K
+        </div>
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            right: 12,
+            bottom: 8,
+            fontFamily: "Great Vibes",
+            fontSize: 78,
+            color: "#f8f8f7",
+            lineHeight: 1,
+          }}
+        >
+          R
+        </div>
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            fontFamily: "Great Vibes",
+            fontSize: 94,
+            color: "#F2EDE4",
+            lineHeight: 1,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          &amp;
+        </div>
       </div>
     ),
     {
