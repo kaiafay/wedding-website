@@ -23,21 +23,33 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
 });
 
+const siteTitle = "Kaia & Richard — July 10, 2027";
+const shareTitle = "Kaia & Richard";
+const shareDescription =
+  "Saturday, July 10, 2027 · The Vasak Estate, Bellingham, WA";
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Kaia & Richard — July 10, 2027",
-  description: "Join us to celebrate our wedding day.",
+  title: siteTitle,
+  description: shareDescription,
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Kaia & Richard — July 10, 2027",
-    description: "Join us to celebrate our wedding day.",
+    title: shareTitle,
+    description: shareDescription,
+    url: "/",
     type: "website",
     locale: "en_US",
     siteName: "Kaia & Richard",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kaia & Richard — July 10, 2027",
-    description: "Join us to celebrate our wedding day.",
+    title: shareTitle,
+    description: shareDescription,
+  },
+  appleWebApp: {
+    title: shareTitle,
   },
 };
 

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { loadOgFonts } from "@/lib/og-fonts";
 
-export const alt = "Kaia & Richard — July 10, 2027 · Bellingham, Washington";
+export const alt = "Kaia and Richard wedding — July 10, 2027 in Bellingham, Washington";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
