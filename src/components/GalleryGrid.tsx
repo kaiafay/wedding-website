@@ -55,7 +55,12 @@ function FadeInImage({
   );
 }
 
-export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
+export type GalleryPhoto = {
+  src: StaticImageData;
+  alt: string;
+};
+
+export default function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
   const isMobile = useIsMobile();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -127,11 +132,11 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
             key={i}
             className="gallery-item"
             onClick={() => { if (!isMobile) setLightboxIndex(i); }}
-            aria-label={`View photo ${i + 1}`}
+            aria-label={photo.alt}
           >
             <FadeInImage
-              src={photo}
-              alt=""
+              src={photo.src}
+              alt={photo.alt}
               sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
               style={{ width: "100%", height: "auto" }}
             />
@@ -242,8 +247,8 @@ export default function GalleryGrid({ photos }: { photos: StaticImageData[] }) {
                   style={{ position: "absolute", inset: 0 }}
                 >
                   <FadeInImage
-                    src={photos[lightboxIndex]}
-                    alt=""
+                    src={photos[lightboxIndex].src}
+                    alt={photos[lightboxIndex].alt}
                     fill
                     sizes="90vw"
                     className="lightbox-img"

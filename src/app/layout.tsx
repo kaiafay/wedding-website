@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Great_Vibes, Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 
+const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+
 const greatVibes = Great_Vibes({
   weight: "400",
   subsets: ["latin"],
@@ -22,8 +24,21 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Kaia & Richard — July 10, 2027",
   description: "Join us to celebrate our wedding day.",
+  openGraph: {
+    title: "Kaia & Richard — July 10, 2027",
+    description: "Join us to celebrate our wedding day.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Kaia & Richard",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kaia & Richard — July 10, 2027",
+    description: "Join us to celebrate our wedding day.",
+  },
 };
 
 export default function RootLayout({

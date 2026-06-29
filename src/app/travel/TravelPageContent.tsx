@@ -140,7 +140,7 @@ export default function TravelPageContent() {
               maxWidth: 560,
             }}
           >
-            Bellingham is a beautiful corner of the Pacific Northwest, tucked between the mountains and the bay. Mountain views, easy waterfront walks, and a food scene worth exploring. Here&apos;s everything you need to plan your trip.
+            Bellingham is a beautiful corner of the Pacific Northwest, tucked between the mountains and the bay. Stunning scenery, easy waterfront walks, and a food scene worth exploring. Here&apos;s everything you need to plan your trip.
           </motion.p>
         </div>
       </section>
