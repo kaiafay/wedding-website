@@ -1,22 +1,44 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import InvitationCard from "@/components/rsvp/InvitationCard";
 
-interface RsvpSectionProps {
-  token: string | null;
-  tokenValid: boolean;
-  tokenChecked: boolean;
-  tokenUsed: boolean;
-  guestName: string | null;
-}
+type TokenState =
+  | { status: "loading" }
+  | { status: "none" }
+  | { status: "valid"; name: string | null; token: string }
+  | { status: "used" };
 
-export default function RsvpSection({
-  token,
-  tokenValid,
-  tokenChecked,
-  tokenUsed,
-  guestName,
-}: RsvpSectionProps) {
+export default function RsvpSection() {
+  const [tokenState, setTokenState] = useState<TokenState>({ status: "loading" });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) {
+      setTokenState({ status: "none" });
+      return;
+    }
+    fetch(`/api/token?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.valid) {
+          setTokenState({ status: "valid", name: data.name, token });
+        } else if (data.reason === "used") {
+          setTokenState({ status: "used" });
+        } else {
+          setTokenState({ status: "none" });
+        }
+      })
+      .catch(() => setTokenState({ status: "none" }));
+  }, []);
+
+  const token = tokenState.status === "valid" ? tokenState.token : null;
+  const tokenValid = tokenState.status === "valid";
+  const tokenChecked = tokenState.status !== "loading";
+  const tokenUsed = tokenState.status === "used";
+  const guestName = tokenState.status === "valid" ? tokenState.name : null;
+
   if (!tokenChecked)
     return (
       <section
@@ -31,7 +53,7 @@ export default function RsvpSection({
       style={{ background: "var(--white)", padding: "56px 0 64px" }}
     >
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 24px" }}>
-        {/* Public view — no personal link (used tokens pass token=null from page) */}
+        {/* Public view — no token in URL */}
         {!token && !tokenUsed && (
           <div style={{ textAlign: "center" }}>
             <p

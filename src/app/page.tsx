@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import HeroSection from "@/components/sections/HeroSection";
 import OurStorySection from "@/components/sections/OurStorySection";
 import ScheduleSection from "@/components/sections/ScheduleSection";
@@ -39,36 +36,7 @@ function SectionDivider() {
   );
 }
 
-type TokenState =
-  | { status: "loading" }
-  | { status: "none" }
-  | { status: "valid"; name: string | null; token: string }
-  | { status: "used" };
-
 export default function Home() {
-  const [tokenState, setTokenState] = useState<TokenState>({ status: "loading" });
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    if (!token) {
-      setTokenState({ status: "none" });
-      return;
-    }
-    fetch(`/api/token?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.valid) {
-          setTokenState({ status: "valid", name: data.name, token });
-        } else if (data.reason === "used") {
-          setTokenState({ status: "used" });
-        } else {
-          setTokenState({ status: "none" });
-        }
-      })
-      .catch(() => setTokenState({ status: "none" }));
-  }, []);
-
   return (
     <main>
       <NavBar />
@@ -78,13 +46,7 @@ export default function Home() {
       <ScheduleSection />
       <SectionDivider />
       <FaqSection />
-      <RsvpSection
-        token={tokenState.status === "valid" ? tokenState.token : null}
-        tokenValid={tokenState.status === "valid"}
-        tokenChecked={tokenState.status !== "loading"}
-        tokenUsed={tokenState.status === "used"}
-        guestName={tokenState.status === "valid" ? tokenState.name : null}
-      />
+      <RsvpSection />
       <Footer />
     </main>
   );
