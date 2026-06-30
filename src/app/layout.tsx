@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { Great_Vibes, Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+const siteUrl =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
 
 const greatVibes = Great_Vibes({
   weight: "400",

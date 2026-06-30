@@ -111,7 +111,11 @@ export async function POST(request: NextRequest) {
   }
 
   const dry = request.nextUrl.searchParams.get("dry") === "true";
-  const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+  const siteUrl =
+    process.env.SITE_URL ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
   const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
 
   const pending = await db

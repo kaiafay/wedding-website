@@ -101,7 +101,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Guest has no email address" }, { status: 400 });
   }
 
-  const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+  const siteUrl =
+    process.env.SITE_URL ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
   const rsvpUrl = `${siteUrl}/?token=${guest.token}`;
   const guestName = guest.name ?? "Friend";
 
