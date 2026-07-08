@@ -3,7 +3,9 @@ import { validateSession } from "@/lib/auth";
 import {
   DEFAULT_INVITE_NOTE,
   buildInviteEmailHtml,
+  buildInviteEmailText,
   buildSaveTheDateEmailHtml,
+  buildSaveTheDateEmailText,
 } from "@/lib/email-templates";
 
 function getPreviewUrlOverride(request: NextRequest): string | null {
@@ -32,27 +34,50 @@ export async function GET(request: NextRequest) {
 
   const siteUrl = request.nextUrl.origin;
   const type = request.nextUrl.searchParams.get("type") ?? "invite";
+  const format = request.nextUrl.searchParams.get("format") ?? "html";
   const guestName = request.nextUrl.searchParams.get("name") ?? "Test Guest";
   const overrideUrl = getPreviewUrlOverride(request);
+  const note = request.nextUrl.searchParams.get("note") ?? DEFAULT_INVITE_NOTE;
 
   let html: string;
+  let text: string;
 
   if (type === "save-the-date") {
+    const link = overrideUrl ?? `${siteUrl}/save-the-date?token=preview-token`;
     html = buildSaveTheDateEmailHtml({
       guestName,
-      link: overrideUrl ?? `${siteUrl}/save-the-date?token=preview-token`,
+      link,
       siteUrl,
     });
+    text = buildSaveTheDateEmailText({ guestName, link });
   } else if (type === "invite") {
+    const rsvpUrl = overrideUrl ?? `${siteUrl}/?token=preview-token`;
     html = buildInviteEmailHtml({
       guestName,
-      note: request.nextUrl.searchParams.get("note") ?? DEFAULT_INVITE_NOTE,
-      rsvpUrl: overrideUrl ?? `${siteUrl}/?token=preview-token`,
+      note,
+      rsvpUrl,
       siteUrl,
     });
+    text = buildInviteEmailText({ guestName, note, rsvpUrl });
   } else {
     return NextResponse.json(
       { error: "Invalid preview type. Use invite or save-the-date." },
+      { status: 400 },
+    );
+  }
+
+  if (format === "text") {
+    return new Response(text, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  if (format !== "html") {
+    return NextResponse.json(
+      { error: "Invalid preview format. Use html or text." },
       { status: 400 },
     );
   }

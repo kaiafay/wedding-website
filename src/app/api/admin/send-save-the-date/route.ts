@@ -4,7 +4,11 @@ import { guests } from "@/lib/schema";
 import { eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 import { validateSession } from "@/lib/auth";
-import { buildSaveTheDateEmailHtml, getSiteUrl } from "@/lib/email-templates";
+import {
+  buildSaveTheDateEmailHtml,
+  buildSaveTheDateEmailText,
+  getSiteUrl,
+} from "@/lib/email-templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -41,16 +45,18 @@ export async function POST(request: NextRequest) {
   for (const guest of sendable) {
     try {
       const link = `${siteUrl}/save-the-date?token=${guest.saveTheDateToken}`;
+      const guestName = guest.name ?? "Friend";
 
       await resend.emails.send({
         from,
         to: guest.email!,
         subject: "Save the Date — Kaia & Richard, July 10, 2027",
         html: buildSaveTheDateEmailHtml({
-          guestName: guest.name ?? "Friend",
+          guestName,
           link,
           siteUrl,
         }),
+        text: buildSaveTheDateEmailText({ guestName, link }),
       });
 
       await db

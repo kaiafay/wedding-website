@@ -4,7 +4,11 @@ import { guests } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { validateSession } from "@/lib/auth";
-import { buildInviteEmailHtml, getSiteUrl } from "@/lib/email-templates";
+import {
+  buildInviteEmailHtml,
+  buildInviteEmailText,
+  getSiteUrl,
+} from "@/lib/email-templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -43,6 +47,7 @@ export async function POST(request: NextRequest) {
       to: guest.email,
       subject: "You're Invited — Kaia & Richard, July 10th 2027",
       html: buildInviteEmailHtml({ guestName, note, rsvpUrl, siteUrl }),
+      text: buildInviteEmailText({ guestName, note, rsvpUrl }),
     });
   } catch (err) {
     console.error("Failed to send email:", err);

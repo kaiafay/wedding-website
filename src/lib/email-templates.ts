@@ -12,7 +12,9 @@ export const EMAIL_COLORS = {
 
 export const EMAIL_EVENT = {
   couple: "Kaia & Richard",
+  dateText: "Saturday · July 10th · 2027",
   dateLine: "Saturday &middot; July 10th &middot; 2027",
+  venueText: "The Vasak Estate · Bellingham, WA",
   venueLine: "The Vasak Estate &middot; Bellingham, WA",
 } as const;
 
@@ -34,6 +36,10 @@ export function escapeHtml(str: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function normalizeText(str: string): string {
+  return str.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function buildFontFaceCss(siteUrl: string): string {
@@ -90,6 +96,29 @@ function buildNameLockupImage({
   const imageUrl = `${siteUrl.replace(/\/$/, "")}/email/kaia-richard-${variant}.png`;
 
   return `<img src="${escapeHtml(imageUrl)}" width="${width}" height="${height}" alt="Kaia &amp; Richard" style="display:block;border:0;outline:none;text-decoration:none;width:${width}px;max-width:100%;height:auto;margin:0 auto ${marginBottom}px;">`;
+}
+
+export function buildInviteEmailText({
+  guestName,
+  note,
+  rsvpUrl,
+}: {
+  guestName: string;
+  note: string;
+  rsvpUrl: string;
+}): string {
+  return normalizeText(`Together with their families
+
+${EMAIL_EVENT.couple}
+
+${EMAIL_EVENT.dateText}
+${EMAIL_EVENT.venueText}
+
+${note}
+
+RSVP Now: ${rsvpUrl}
+
+This invitation was sent personally to ${guestName}. Please do not share this link.`);
 }
 
 export function buildInviteEmailHtml({
@@ -174,6 +203,31 @@ ${buildEmailHead("You're Invited — Kaia &amp; Richard", c.mauve, siteUrl)}
 </table>
 </body>
 </html>`;
+}
+
+export function buildSaveTheDateEmailText({
+  guestName,
+  link,
+}: {
+  guestName: string;
+  link: string;
+}): string {
+  return normalizeText(`Save the Date
+
+${EMAIL_EVENT.couple}
+
+${EMAIL_EVENT.dateText}
+${EMAIL_EVENT.venueText}
+
+Dear ${guestName},
+
+We hope you'll join us to celebrate our wedding day.
+
+View Save the Date: ${link}
+
+Formal invitation to follow.
+
+This save the date was sent personally to ${guestName}.`);
 }
 
 export function buildSaveTheDateEmailHtml({
