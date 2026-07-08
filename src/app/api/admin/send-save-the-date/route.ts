@@ -36,23 +36,33 @@ body { margin: 0; padding: 0; background-color: #f2ede4; }
     <td align="center" style="padding:60px 20px 48px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
 
+        <!-- Personalized label -->
+        <tr>
+          <td align="center" style="padding-bottom:18px;">
+            <p style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:#9B7E97;margin:0;">
+              For ${safeName}
+            </p>
+          </td>
+        </tr>
+
         <!-- Floral card -->
         <tr>
           <td align="center" style="padding-bottom:40px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf7f2;border:1px solid #ddd5c8;">
               <tr>
                 <td align="center" style="padding:36px 32px 32px;">
-                  <p style="font-family:Georgia,serif;font-size:9px;letter-spacing:0.38em;text-transform:uppercase;color:#8a8178;margin:0 0 10px;">
+                  <p style="font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.38em;text-transform:uppercase;color:#9B7E97;margin:0 0 10px;">
                     Save the Date
                   </p>
                   <p style="font-family:'Great Vibes',Georgia,cursive;font-size:48px;color:#3d3a3a;margin:0 0 14px;line-height:1.1;mso-line-height-rule:exactly;">
                     Kaia &amp; Richard
                   </p>
-                  <p style="font-family:Georgia,serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#8a8178;margin:0 0 4px;">
-                    Saturday &middot; July 10, 2027
+                  <div style="width:40px;height:1px;background-color:#9B7E97;line-height:1px;font-size:1px;margin:0 0 18px;">&nbsp;</div>
+                  <p style="font-family:Georgia,serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#3d3a3a;margin:0 0 8px;">
+                    Saturday &middot; July 10th &middot; 2027
                   </p>
-                  <p style="font-family:Georgia,serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#8a8178;margin:0;">
-                    Bellingham, Washington
+                  <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:16px;color:#8a8178;margin:0;font-style:italic;">
+                    The Vasak Estate &middot; Bellingham, WA
                   </p>
                 </td>
               </tr>
@@ -75,7 +85,7 @@ body { margin: 0; padding: 0; background-color: #f2ede4; }
         <!-- CTA -->
         <tr>
           <td align="center" style="padding-top:40px;padding-bottom:40px;">
-            <a href="${safeLink}" style="display:inline-block;background-color:#3d3a3a;color:#f8f8f7;font-family:Georgia,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;text-decoration:none;padding:14px 36px;">
+            <a href="${safeLink}" style="display:inline-block;background-color:transparent;color:#9B7E97;border:1px solid #9B7E97;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;text-decoration:none;padding:14px 36px;">
               View Save the Date
             </a>
           </td>
@@ -91,7 +101,7 @@ body { margin: 0; padding: 0; background-color: #f2ede4; }
         </tr>
         <tr>
           <td align="center" style="padding-top:16px;">
-            <p style="font-family:Georgia,sans-serif;font-size:11px;color:#8a8178;margin:0;line-height:1.6;">
+            <p style="font-family:Arial,sans-serif;font-size:11px;color:#8a8178;margin:0;line-height:1.6;">
               This save the date was sent personally to ${safeName}.
             </p>
           </td>
