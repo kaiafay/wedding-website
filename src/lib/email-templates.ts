@@ -40,13 +40,6 @@ function buildFontFaceCss(siteUrl: string): string {
   const fontBase = `${siteUrl.replace(/\/$/, "")}/fonts`;
 
   return `@font-face {
-  font-family: 'Great Vibes';
-  font-style: normal;
-  font-weight: 400;
-  mso-font-alt: 'Georgia';
-  src: url('${fontBase}/great-vibes-latin.woff2') format('woff2');
-}
-@font-face {
   font-family: 'Cormorant Garamond';
   font-style: normal;
   font-weight: 300;
@@ -79,6 +72,24 @@ ${buildFontFaceCss(siteUrl)}
 body { margin: 0; padding: 0; background-color: ${backgroundColor}; }
 </style>
 </head>`;
+}
+
+function buildNameLockupImage({
+  siteUrl,
+  variant,
+  width,
+  height,
+  marginBottom = 0,
+}: {
+  siteUrl: string;
+  variant: "dark" | "light";
+  width: number;
+  height: number;
+  marginBottom?: number;
+}): string {
+  const imageUrl = `${siteUrl.replace(/\/$/, "")}/email/kaia-richard-${variant}.png`;
+
+  return `<img src="${escapeHtml(imageUrl)}" width="${width}" height="${height}" alt="Kaia &amp; Richard" style="display:block;border:0;outline:none;text-decoration:none;width:${width}px;max-width:100%;height:auto;margin:0 auto ${marginBottom}px;">`;
 }
 
 export function buildInviteEmailHtml({
@@ -114,9 +125,7 @@ ${buildEmailHead("You're Invited — Kaia &amp; Richard", c.mauve, siteUrl)}
         </tr>
         <tr>
           <td align="center" style="padding-bottom:4px;">
-            <h1 style="font-family:'Great Vibes',Georgia,cursive;font-size:62px;color:${c.white};margin:0;font-weight:400;line-height:1.1;mso-line-height-rule:exactly;">
-              Kaia <span style="color:${c.ivory};">&amp;</span> Richard
-            </h1>
+            ${buildNameLockupImage({ siteUrl, variant: "light", width: 360, height: 90 })}
           </td>
         </tr>
         <tr>
@@ -189,15 +198,6 @@ ${buildEmailHead("Save the Date &mdash; Kaia &amp; Richard", c.ivory, siteUrl)}
     <td align="center" style="padding:60px 20px 48px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
 
-        <!-- Personalized label -->
-        <tr>
-          <td align="center" style="padding-bottom:18px;">
-            <p style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:${c.mauve};margin:0;">
-              For ${safeName}
-            </p>
-          </td>
-        </tr>
-
         <!-- Floral card -->
         <tr>
           <td align="center" style="padding-bottom:40px;">
@@ -207,9 +207,7 @@ ${buildEmailHead("Save the Date &mdash; Kaia &amp; Richard", c.ivory, siteUrl)}
                   <p style="font-family:Arial,sans-serif;font-size:9px;letter-spacing:0.38em;text-transform:uppercase;color:${c.mauve};margin:0 0 10px;">
                     Save the Date
                   </p>
-                  <p style="font-family:'Great Vibes',Georgia,cursive;font-size:48px;color:${c.charcoal};margin:0 0 14px;line-height:1.1;mso-line-height-rule:exactly;">
-                    Kaia &amp; Richard
-                  </p>
+                  ${buildNameLockupImage({ siteUrl, variant: "dark", width: 320, height: 80, marginBottom: 14 })}
                   <div style="width:40px;height:1px;background-color:${c.mauve};line-height:1px;font-size:1px;margin:0 0 18px;">&nbsp;</div>
                   <p style="font-family:Georgia,serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:${c.charcoal};margin:0 0 8px;">
                     ${EMAIL_EVENT.dateLine}

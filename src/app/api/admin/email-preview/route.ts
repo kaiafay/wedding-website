@@ -4,7 +4,6 @@ import {
   DEFAULT_INVITE_NOTE,
   buildInviteEmailHtml,
   buildSaveTheDateEmailHtml,
-  getSiteUrl,
 } from "@/lib/email-templates";
 
 function getPreviewUrlOverride(request: NextRequest): string | null {
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = request.nextUrl.origin;
   const type = request.nextUrl.searchParams.get("type") ?? "invite";
   const guestName = request.nextUrl.searchParams.get("name") ?? "Test Guest";
   const overrideUrl = getPreviewUrlOverride(request);
