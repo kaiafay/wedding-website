@@ -30,6 +30,13 @@ export function getSiteUrl(): string {
   );
 }
 
+export function buildRsvpUrl(siteUrl: string, token: string): string {
+  const url = new URL(siteUrl);
+  url.searchParams.set("token", token);
+  url.hash = "rsvp";
+  return url.toString();
+}
+
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

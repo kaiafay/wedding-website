@@ -4,6 +4,7 @@ import {
   DEFAULT_INVITE_NOTE,
   buildInviteEmailHtml,
   buildInviteEmailText,
+  buildRsvpUrl,
   buildSaveTheDateEmailHtml,
   buildSaveTheDateEmailText,
 } from "@/lib/email-templates";
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
     text = buildSaveTheDateEmailText({ guestName, link });
   } else if (type === "invite") {
-    const rsvpUrl = overrideUrl ?? `${siteUrl}/?token=preview-token`;
+    const rsvpUrl = overrideUrl ?? buildRsvpUrl(siteUrl, "preview-token");
     html = buildInviteEmailHtml({
       guestName,
       note,

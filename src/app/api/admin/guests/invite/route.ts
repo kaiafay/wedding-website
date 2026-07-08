@@ -7,6 +7,7 @@ import { validateSession } from "@/lib/auth";
 import {
   buildInviteEmailHtml,
   buildInviteEmailText,
+  buildRsvpUrl,
   getSiteUrl,
 } from "@/lib/email-templates";
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 
   const siteUrl = getSiteUrl();
-  const rsvpUrl = `${siteUrl}/?token=${guest.token}`;
+  const rsvpUrl = buildRsvpUrl(siteUrl, guest.token);
   const guestName = guest.name ?? "Friend";
 
   try {

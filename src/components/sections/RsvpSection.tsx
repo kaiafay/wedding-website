@@ -13,15 +13,25 @@ export default function RsvpSection() {
   const [tokenState, setTokenState] = useState<TokenState>({ status: "loading" });
 
   useEffect(() => {
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     if (!token) {
-      setTokenState({ status: "none" });
-      return;
+      Promise.resolve().then(() => {
+        if (!cancelled) {
+          setTokenState({ status: "none" });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     fetch(`/api/token?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) {
+          return;
+        }
         if (data.valid) {
           setTokenState({ status: "valid", name: data.name, token });
         } else if (data.reason === "used") {
@@ -30,7 +40,14 @@ export default function RsvpSection() {
           setTokenState({ status: "none" });
         }
       })
-      .catch(() => setTokenState({ status: "none" }));
+      .catch(() => {
+        if (!cancelled) {
+          setTokenState({ status: "none" });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const token = tokenState.status === "valid" ? tokenState.token : null;
