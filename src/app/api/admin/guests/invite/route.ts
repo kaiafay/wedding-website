@@ -8,7 +8,7 @@ import {
   buildInviteEmailHtml,
   buildInviteEmailText,
   buildRsvpUrl,
-  getSiteUrl,
+  getEmailSiteUrl,
 } from "@/lib/email-templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Guest has no email address" }, { status: 400 });
   }
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = getEmailSiteUrl();
   const rsvpUrl = buildRsvpUrl(siteUrl, guest.token);
   const guestName = guest.name ?? "Friend";
 

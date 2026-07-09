@@ -7,7 +7,8 @@ import { validateSession } from "@/lib/auth";
 import {
   buildSaveTheDateEmailHtml,
   buildSaveTheDateEmailText,
-  getSiteUrl,
+  buildSaveTheDateUrl,
+  getEmailSiteUrl,
 } from "@/lib/email-templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   const dry = request.nextUrl.searchParams.get("dry") === "true";
-  const siteUrl = getSiteUrl();
+  const siteUrl = getEmailSiteUrl();
   const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
 
   const pending = await db
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
   for (const guest of sendable) {
     try {
-      const link = `${siteUrl}/save-the-date?token=${guest.saveTheDateToken}`;
+      const link = buildSaveTheDateUrl(siteUrl, guest.saveTheDateToken!);
       const guestName = guest.name ?? "Friend";
 
       await resend.emails.send({

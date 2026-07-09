@@ -7,6 +7,7 @@ import {
   buildRsvpUrl,
   buildSaveTheDateEmailHtml,
   buildSaveTheDateEmailText,
+  buildSaveTheDateUrl,
 } from "@/lib/email-templates";
 
 function getPreviewUrlOverride(request: NextRequest): string | null {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
   let text: string;
 
   if (type === "save-the-date") {
-    const link = overrideUrl ?? `${siteUrl}/save-the-date?token=preview-token`;
+    const link = overrideUrl ?? buildSaveTheDateUrl(siteUrl, "preview-token");
     html = buildSaveTheDateEmailHtml({
       guestName,
       link,

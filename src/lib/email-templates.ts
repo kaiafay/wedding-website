@@ -30,10 +30,20 @@ export function getSiteUrl(): string {
   );
 }
 
+export function getEmailSiteUrl(): string {
+  return process.env.EMAIL_SITE_URL ?? getSiteUrl();
+}
+
 export function buildRsvpUrl(siteUrl: string, token: string): string {
   const url = new URL(siteUrl);
   url.searchParams.set("token", token);
   url.hash = "rsvp";
+  return url.toString();
+}
+
+export function buildSaveTheDateUrl(siteUrl: string, token: string): string {
+  const url = new URL("/save-the-date", siteUrl);
+  url.searchParams.set("token", token);
   return url.toString();
 }
 
