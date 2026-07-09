@@ -14,6 +14,7 @@ const FLAP_DURATION_S = 0.75;
 
 const FLAP_FRONT = { r: 228, g: 221, b: 214 };
 const FLAP_INNER = { r: 216, g: 209, b: 202 };
+const RSVP_CARD_BACKGROUND = "#faf7f2";
 
 function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3);
@@ -33,11 +34,13 @@ const RESERVED_COLUMN_HEIGHT = 300;
 interface InvitationCardProps {
   token: string;
   guestName: string | null;
+  previewMode?: boolean;
 }
 
 export default function InvitationCard({
   token,
   guestName,
+  previewMode = false,
 }: InvitationCardProps) {
   const [stage, setStage] = useState<Stage>("idle");
 
@@ -46,14 +49,12 @@ export default function InvitationCard({
   const fadeOutIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
-  const risingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const expandingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
       if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
-      if (risingTimerRef.current) clearTimeout(risingTimerRef.current);
       if (expandingTimerRef.current) clearTimeout(expandingTimerRef.current);
       if (audioRef.current) {
         audioRef.current.pause();
@@ -176,6 +177,11 @@ export default function InvitationCard({
     if (!canSubmit) return;
     setSubmitting(true);
     setError("");
+    if (previewMode) {
+      setSubmitted(true);
+      setSubmitting(false);
+      return;
+    }
     try {
       const res = await fetch("/api/rsvp", {
         method: "POST",
@@ -301,7 +307,7 @@ export default function InvitationCard({
                   overflow: "visible",
                 }}
               >
-                {/* Envelope body */}
+                {/* Envelope back panel */}
                 <motion.div
                   animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
                   transition={{
@@ -315,10 +321,69 @@ export default function InvitationCard({
                     background: "#EDE8E2",
                     borderRadius: 2,
                     boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Mini card — rises from between the envelope back and front pocket */}
+                <motion.div
+                  animate={stage === "rising" ? { y: -230 } : { y: 0 }}
+                  transition={{ duration: 1.0, ease: [0.33, 0, 0.2, 1] }}
+                  onAnimationComplete={() => {
+                    if (stage === "rising") setStage("expanding");
+                  }}
+                  style={{
+                    position: "absolute",
+                    left: 20,
+                    right: 20,
+                    bottom: 8,
+                    background: RSVP_CARD_BACKGROUND,
+                    border: "1px solid var(--rule)",
+                    padding: "18px 24px",
+                    boxShadow: "0 -2px 12px rgba(0,0,0,0.1)",
                     zIndex: 2,
                   }}
                 >
-                  {/* Crease lines — true corner diagonals (45°/135° gradients don't match a non-square box) */}
+                  <p
+                    className="font-script"
+                    style={{
+                      fontSize: 22,
+                      color: "var(--mauve)",
+                      textAlign: "center",
+                    }}
+                  >
+                    K & R
+                  </p>
+                  <p
+                    className="font-serif italic"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--subtle)",
+                      textAlign: "center",
+                    }}
+                  >
+                    July 10, 2027
+                  </p>
+                </motion.div>
+
+                {/* Envelope front pocket */}
+                <motion.div
+                  animate={stage === "rising" ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{
+                    duration: 0.5,
+                    ease: "easeOut",
+                    delay: stage === "rising" ? 0.3 : 0,
+                  }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    pointerEvents: "none",
+                    zIndex: 3,
+                  }}
+                >
+                  {/* Pocket folds — card remains visible in the open top area */}
                   <svg
                     width={320}
                     height={213}
@@ -330,11 +395,23 @@ export default function InvitationCard({
                     }}
                     aria-hidden
                   >
+                    <polygon
+                      points="0,0 160,112 0,213"
+                      fill="#EDE8E2"
+                    />
+                    <polygon
+                      points="320,0 160,112 320,213"
+                      fill="#EDE8E2"
+                    />
+                    <polygon
+                      points="0,213 160,112 320,213"
+                      fill="#E8E1DA"
+                    />
                     <line
                       x1={0}
                       y1={0}
-                      x2={320}
-                      y2={213}
+                      x2={160}
+                      y2={112}
                       stroke="rgba(0,0,0,0.07)"
                       strokeWidth={1}
                       vectorEffect="non-scaling-stroke"
@@ -342,8 +419,26 @@ export default function InvitationCard({
                     <line
                       x1={320}
                       y1={0}
-                      x2={0}
-                      y2={213}
+                      x2={160}
+                      y2={112}
+                      stroke="rgba(0,0,0,0.07)"
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <line
+                      x1={0}
+                      y1={213}
+                      x2={160}
+                      y2={112}
+                      stroke="rgba(0,0,0,0.07)"
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <line
+                      x1={320}
+                      y1={213}
+                      x2={160}
+                      y2={112}
                       stroke="rgba(0,0,0,0.07)"
                       strokeWidth={1}
                       vectorEffect="non-scaling-stroke"
@@ -387,50 +482,6 @@ export default function InvitationCard({
                   </span>
                 </motion.div>
 
-                {/* Mini card — rises out of envelope */}
-                <motion.div
-                  animate={stage === "rising" ? { y: -230 } : { y: 0 }}
-                  transition={{ duration: 1.0, ease: [0.33, 0, 0.2, 1] }}
-                  onAnimationComplete={() => {
-                    if (stage === "rising")
-                      risingTimerRef.current = setTimeout(
-                        () => setStage("expanding"),
-                        100,
-                      );
-                  }}
-                  style={{
-                    position: "absolute",
-                    left: 20,
-                    right: 20,
-                    bottom: 8,
-                    background: "var(--ivory)",
-                    padding: "18px 24px",
-                    boxShadow: "0 -2px 12px rgba(0,0,0,0.1)",
-                    zIndex: 1,
-                  }}
-                >
-                  <p
-                    className="font-script"
-                    style={{
-                      fontSize: 22,
-                      color: "var(--mauve)",
-                      textAlign: "center",
-                    }}
-                  >
-                    K & R
-                  </p>
-                  <p
-                    className="font-serif italic"
-                    style={{
-                      fontSize: 12,
-                      color: "var(--subtle)",
-                      textAlign: "center",
-                    }}
-                  >
-                    July 10, 2027
-                  </p>
-                </motion.div>
-
                 {/* Top flap — polygon points and fill are MotionValues that update the
                     SVG DOM attributes directly, bypassing React re-renders entirely */}
                 <motion.div
@@ -472,11 +523,10 @@ export default function InvitationCard({
         {cardVisible && (
           <motion.div
             key="card-phase"
-            initial={{ scaleX: 0.593, opacity: 0 }}
+            initial={{ scaleX: 0.593, opacity: 1 }}
             animate={{ scaleX: 1, opacity: 1 }}
             transition={{
               scaleX: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] },
-              opacity: { duration: 0.5 },
             }}
             onAnimationComplete={() => {
               if (stage === "expanding")
@@ -489,7 +539,8 @@ export default function InvitationCard({
               width: "100%",
               maxWidth: 472,
               transformOrigin: "center",
-              background: "var(--ivory)",
+              background: RSVP_CARD_BACKGROUND,
+              border: "1px solid var(--rule)",
               boxShadow: "0 4px 40px rgba(0,0,0,0.12)",
               overflow: "hidden",
             }}

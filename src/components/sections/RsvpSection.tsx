@@ -6,8 +6,10 @@ import InvitationCard from "@/components/rsvp/InvitationCard";
 type TokenState =
   | { status: "loading" }
   | { status: "none" }
-  | { status: "valid"; name: string | null; token: string }
+  | { status: "valid"; name: string | null; token: string; preview?: boolean }
   | { status: "used" };
+
+const RSVP_PREVIEW_TOKEN = "preview-rsvp";
 
 export default function RsvpSection() {
   const [tokenState, setTokenState] = useState<TokenState>({ status: "loading" });
@@ -20,6 +22,21 @@ export default function RsvpSection() {
       Promise.resolve().then(() => {
         if (!cancelled) {
           setTokenState({ status: "none" });
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (token === RSVP_PREVIEW_TOKEN) {
+      Promise.resolve().then(() => {
+        if (!cancelled) {
+          setTokenState({
+            status: "valid",
+            name: "Test Guest",
+            token,
+            preview: true,
+          });
         }
       });
       return () => {
@@ -55,6 +72,7 @@ export default function RsvpSection() {
   const tokenChecked = tokenState.status !== "loading";
   const tokenUsed = tokenState.status === "used";
   const guestName = tokenState.status === "valid" ? tokenState.name : null;
+  const previewMode = tokenState.status === "valid" && tokenState.preview === true;
 
   if (!tokenChecked)
     return (
@@ -133,7 +151,13 @@ export default function RsvpSection() {
         )}
 
         {/* Valid token — envelope + form */}
-        {tokenValid && <InvitationCard token={token!} guestName={guestName} />}
+        {tokenValid && (
+          <InvitationCard
+            token={token!}
+            guestName={guestName}
+            previewMode={previewMode}
+          />
+        )}
       </div>
     </section>
   );

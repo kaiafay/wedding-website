@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     });
     text = buildSaveTheDateEmailText({ guestName, link });
   } else if (type === "invite") {
-    const rsvpUrl = overrideUrl ?? buildRsvpUrl(siteUrl, "preview-token");
+    const rsvpUrl = overrideUrl ?? buildRsvpUrl(siteUrl, "preview-rsvp");
     html = buildInviteEmailHtml({
       guestName,
       note,
