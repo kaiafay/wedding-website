@@ -4,9 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
 import { WISH_MESSAGE_MAX, WISH_NAME_MAX } from "@/lib/wishes-constants";
 
-const PASSPHRASE_KEY = "wishes_passphrase";
-const NAME_KEY = "wishes_name";
-
 export type Wish = {
   id: number;
   name: string;
@@ -62,13 +59,11 @@ export default function WishesBoard({
 }) {
   const [wishes, setWishes] = useState<Wish[]>(initialWishes);
   const [passphrase, setPassphrase] = useState("");
-  const [storedPassphrase, setStoredPassphrase] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [showPassphraseField, setShowPassphraseField] = useState(true);
   const initialWishIds = useRef(new Set(initialWishes.map((w) => w.id)));
   const reduced = useReducedMotion() ?? false;
   const wallRef = useRef<HTMLDivElement>(null);
@@ -85,6 +80,14 @@ export default function WishesBoard({
     );
   }, [wishes]);
 
+  function resetForm() {
+    setPassphrase("");
+    setName("");
+    setMessage("");
+    setError("");
+    setSuccess(false);
+  }
+
   useEffect(() => {
     if (reduced) return;
 
@@ -99,31 +102,12 @@ export default function WishesBoard({
     return () => cancelAnimationFrame(frame);
   }, [reduced]);
 
-  useEffect(() => {
-    const savedPassphrase = sessionStorage.getItem(PASSPHRASE_KEY);
-    const savedName = sessionStorage.getItem(NAME_KEY);
-    if (savedPassphrase) {
-      setStoredPassphrase(savedPassphrase);
-      setPassphrase(savedPassphrase);
-      setShowPassphraseField(false);
-    }
-    if (savedName) setName(savedName);
-  }, []);
-
-  function clearStoredPassphrase() {
-    sessionStorage.removeItem(PASSPHRASE_KEY);
-    setStoredPassphrase(null);
-    setPassphrase("");
-    setShowPassphraseField(true);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
-    const activePassphrase = showPassphraseField ? passphrase : storedPassphrase;
-    if (!activePassphrase?.trim()) {
+    if (!passphrase.trim()) {
       setError("Passphrase is required.");
       return;
     }
@@ -142,7 +126,7 @@ export default function WishesBoard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          passphrase: activePassphrase.trim(),
+          passphrase: passphrase.trim(),
           name: name.trim(),
           message: message.trim(),
         }),
@@ -151,9 +135,6 @@ export default function WishesBoard({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        if (res.status === 403) {
-          clearStoredPassphrase();
-        }
         setError(
           (data as { error?: string }).error ?? "Something went wrong.",
         );
@@ -162,10 +143,8 @@ export default function WishesBoard({
 
       const wish = (data as { wish: Wish }).wish;
       setWishes((prev) => [wish, ...prev]);
-      sessionStorage.setItem(PASSPHRASE_KEY, activePassphrase.trim());
-      sessionStorage.setItem(NAME_KEY, name.trim());
-      setStoredPassphrase(activePassphrase.trim());
-      setShowPassphraseField(false);
+      setPassphrase("");
+      setName("");
       setMessage("");
       setSuccess(true);
     } catch {
@@ -280,190 +259,216 @@ export default function WishesBoard({
             </motion.p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ maxWidth: 480, marginBottom: 56 }}>
-            {showPassphraseField ? (
-              <motion.div {...whisperFade(0.32, 0.64, reduced)} style={{ marginBottom: 28 }}>
-                <label
-                  className="font-sans"
-                  style={{
-                    display: "block",
-                    fontSize: 10,
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: "var(--subtle)",
-                    marginBottom: 10,
-                  }}
-                >
-                  Passphrase
-                </label>
-                <input
-                  type="password"
-                  value={passphrase}
-                  onChange={(e) => setPassphrase(e.target.value)}
-                  autoComplete="off"
-                  style={inputStyle}
-                />
-              </motion.div>
-            ) : (
-              <motion.div {...whisperFade(0.32, 0.64, reduced)} style={{ marginBottom: 28 }}>
-                <p
-                  className="font-sans"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 300,
-                    color: "var(--subtle)",
-                    margin: 0,
-                  }}
-                >
-                  Passphrase saved for this visit.{" "}
-                  <button
-                    type="button"
-                    onClick={clearStoredPassphrase}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      color: "var(--mauve)",
-                      font: "inherit",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "3px",
-                    }}
-                  >
-                    Change
-                  </button>
-                </p>
-              </motion.div>
-            )}
-
-            <motion.div {...whisperFade(0.4, 0.64, reduced)} style={{ marginBottom: 28 }}>
-              <label
-                className="font-sans"
-                style={{
-                  display: "block",
-                  fontSize: 10,
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  color: "var(--subtle)",
-                  marginBottom: 10,
-                }}
-              >
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={WISH_NAME_MAX}
-                style={inputStyle}
-              />
-            </motion.div>
-
-            <motion.div {...whisperFade(0.48, 0.64, reduced)} style={{ marginBottom: 12 }}>
-              <label
-                className="font-sans"
-                style={{
-                  display: "block",
-                  fontSize: 10,
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  color: "var(--subtle)",
-                  marginBottom: 10,
-                }}
-              >
-                Your Message
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                maxLength={WISH_MESSAGE_MAX}
-                rows={4}
-                style={{
-                  ...inputStyle,
-                  resize: "none",
-                  minHeight: 96,
-                  borderBottom: "1px solid var(--rule)",
-                }}
-              />
-            </motion.div>
-
-            {message.length >= WISH_MESSAGE_MAX - 40 && (
-              <p
-                className="font-sans"
-                style={{
-                  fontSize: 11,
-                  color: "var(--mauve-light)",
-                  marginBottom: 16,
-                  marginTop: 0,
-                }}
-              >
-                {WISH_MESSAGE_MAX - message.length} characters left
-              </p>
-            )}
-
-            {error && (
-              <p
-                className="font-sans"
-                style={{
-                  fontSize: 12,
-                  color: "var(--mauve-dark)",
-                  marginBottom: 16,
-                }}
-              >
-                {error}
-              </p>
-            )}
-
-            <AnimatePresence>
-              {success && (
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              maxWidth: 480,
+              minHeight: 432,
+              marginBottom: 56,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <AnimatePresence mode="wait">
+              {success ? (
                 <motion.div
-                  initial={{ opacity: 0 }}
+                  key="success"
+                  initial={{ opacity: 0, y: reduced ? 0 : 8 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.5, ease: EASE }}
-                  style={{ marginBottom: 20 }}
+                  style={{
+                    minHeight: 360,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    paddingTop: 18,
+                  }}
                 >
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.3em",
+                      textTransform: "uppercase",
+                      color: "var(--mauve)",
+                      margin: "0 0 22px",
+                    }}
+                  >
+                    — posted —
+                  </p>
                   <p
                     className="font-script"
                     style={{
-                      fontSize: 32,
-                      color: "var(--mauve)",
-                      marginBottom: 6,
+                      fontSize: 38,
+                      color: "var(--charcoal)",
+                      margin: "0 0 12px",
                     }}
                   >
                     Thank you
                   </p>
                   <p
                     className="font-serif italic"
-                    style={{ fontSize: 15, color: "var(--subtle)", margin: 0 }}
+                    style={{
+                      fontSize: 18,
+                      color: "var(--subtle)",
+                      lineHeight: 1.7,
+                      margin: "0 0 34px",
+                    }}
                   >
                     Your note is on the wall.
                   </p>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="font-sans wishes-submit"
+                    style={{
+                      alignSelf: "flex-start",
+                      background: "transparent",
+                      border: "1px solid var(--mauve)",
+                      color: "var(--mauve)",
+                      cursor: "pointer",
+                      fontSize: 10,
+                      letterSpacing: "0.3em",
+                      padding: "14px 32px",
+                      textTransform: "uppercase",
+                      transition: "background 0.2s ease, color 0.2s ease",
+                    }}
+                  >
+                    Leave another note
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="fields"
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: EASE }}
+                >
+                  <motion.div {...whisperFade(0.32, 0.64, reduced)} style={{ marginBottom: 28 }}>
+                    <label
+                      className="font-sans"
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        letterSpacing: "0.3em",
+                        textTransform: "uppercase",
+                        color: "var(--subtle)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Passphrase
+                    </label>
+                    <input
+                      type="password"
+                      value={passphrase}
+                      onChange={(e) => setPassphrase(e.target.value)}
+                      autoComplete="off"
+                      style={inputStyle}
+                    />
+                  </motion.div>
+
+                  <motion.div {...whisperFade(0.4, 0.64, reduced)} style={{ marginBottom: 28 }}>
+                    <label
+                      className="font-sans"
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        letterSpacing: "0.3em",
+                        textTransform: "uppercase",
+                        color: "var(--subtle)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={WISH_NAME_MAX}
+                      style={inputStyle}
+                    />
+                  </motion.div>
+
+                  <motion.div {...whisperFade(0.48, 0.64, reduced)} style={{ marginBottom: 12 }}>
+                    <label
+                      className="font-sans"
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        letterSpacing: "0.3em",
+                        textTransform: "uppercase",
+                        color: "var(--subtle)",
+                        marginBottom: 10,
+                      }}
+                    >
+                      Your Message
+                    </label>
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      maxLength={WISH_MESSAGE_MAX}
+                      rows={4}
+                      style={{
+                        ...inputStyle,
+                        resize: "none",
+                        minHeight: 96,
+                        borderBottom: "1px solid var(--rule)",
+                      }}
+                    />
+                  </motion.div>
+
+                  {message.length >= WISH_MESSAGE_MAX - 40 && (
+                    <p
+                      className="font-sans"
+                      style={{
+                        fontSize: 11,
+                        color: "var(--mauve-light)",
+                        marginBottom: 16,
+                        marginTop: 0,
+                      }}
+                    >
+                      {WISH_MESSAGE_MAX - message.length} characters left
+                    </p>
+                  )}
+
+                  {error && (
+                    <p
+                      className="font-sans"
+                      style={{
+                        fontSize: 12,
+                        color: "var(--mauve-dark)",
+                        marginBottom: 16,
+                      }}
+                    >
+                      {error}
+                    </p>
+                  )}
+
+                  <motion.div {...whisperFade(0.58, 0.64, reduced)}>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="font-sans wishes-submit"
+                      style={{
+                        fontSize: 10,
+                        letterSpacing: "0.3em",
+                        textTransform: "uppercase",
+                        padding: "14px 32px",
+                        background: "transparent",
+                        border: "1px solid var(--mauve)",
+                        color: "var(--mauve)",
+                        cursor: submitting ? "default" : "pointer",
+                        opacity: submitting ? 0.6 : 1,
+                        transition: "background 0.2s ease, color 0.2s ease",
+                      }}
+                    >
+                      {submitting ? "Posting…" : "Leave a note"}
+                    </button>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <motion.div {...whisperFade(0.58, 0.64, reduced)}>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="font-sans wishes-submit"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  padding: "14px 32px",
-                  background: "transparent",
-                  border: "1px solid var(--mauve)",
-                  color: "var(--mauve)",
-                  cursor: submitting ? "default" : "pointer",
-                  opacity: submitting ? 0.6 : 1,
-                  transition: "background 0.2s ease, color 0.2s ease",
-                }}
-              >
-                {submitting ? "Posting…" : "Leave a note"}
-              </button>
-            </motion.div>
           </form>
 
           <motion.div
