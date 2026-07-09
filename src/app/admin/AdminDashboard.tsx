@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 const DEFAULT_NOTE =
   "We'd love to celebrate with you. Click the link below to RSVP.";
 
+// Controls when the bulk RSVP-send reminder appears. Per-guest sends remain available.
+const BULK_RSVP_INVITE_AVAILABLE_DATE = "2027-03-10";
+
 type RsvpRow = {
   id: number;
   attending: boolean;
@@ -55,6 +58,15 @@ const th: React.CSSProperties = {
   whiteSpace: "nowrap" as const,
 };
 
+const actionControl: React.CSSProperties = {
+  width: 92,
+  minHeight: 26,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxSizing: "border-box",
+};
+
 function formatDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
@@ -64,14 +76,24 @@ function formatDate(iso: string | null) {
   });
 }
 
+function isTodayOrAfter(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const target = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today >= target;
+}
+
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
     <div
+      className="adm-summary-card"
       style={{
         padding: "18px 24px",
         border: "1px solid var(--rule)",
         minWidth: 100,
         textAlign: "center",
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -96,6 +118,72 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function RecipientList({ guests }: { guests: GuestRow[] }) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--rule)",
+        marginBottom: 20,
+        maxHeight: 180,
+        overflowY: "auto",
+      }}
+    >
+      {guests.map((guest) => (
+        <div
+          key={guest.id}
+          style={{
+            padding: "10px 12px",
+            borderBottom: "1px solid var(--rule)",
+          }}
+        >
+          <div
+            className="font-sans"
+            style={{
+              fontSize: 13,
+              color: "var(--charcoal)",
+              lineHeight: 1.4,
+            }}
+          >
+            {guest.name ?? "Guest"}
+          </div>
+          <div
+            className="font-sans"
+            style={{
+              fontSize: 11,
+              color: "var(--subtle)",
+              lineHeight: 1.5,
+            }}
+          >
+            {guest.email ?? "No email"}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </svg>
+  );
+}
+
 export default function AdminDashboard({
   guests,
   wishes: initialWishes,
@@ -107,16 +195,25 @@ export default function AdminDashboard({
   const [guestList, setGuestList] = useState<GuestRow[]>(guests);
   const [wishList, setWishList] = useState<WishRow[]>(initialWishes);
   const [wishActionError, setWishActionError] = useState<string | null>(null);
+  const [deleteWishId, setDeleteWishId] = useState<number | null>(null);
+  const [deleteWishLoading, setDeleteWishLoading] = useState(false);
 
   const responded = guestList.filter((g) => g.rsvp !== null);
   const attending = responded.filter((g) => g.rsvp?.attending);
   const notAttending = responded.filter((g) => !g.rsvp?.attending);
-  const notResponded = guestList.filter((g) => g.rsvp === null);
-  const stdSent = guestList.filter((g) => g.saveTheDateSentAt !== null);
-  const unsentStdCount = guestList.filter(
+  const notResponded = guestList.filter(
+    (g) => g.rsvp === null && g.sentAt !== null,
+  );
+  const unsentStdGuests = guestList.filter(
     (g) => g.saveTheDateSentAt === null && g.email !== null && g.hasSaveTheDateToken,
-  ).length;
-  const visibleWishes = wishList.filter((w) => !w.hidden);
+  );
+  const unsentStdCount = unsentStdGuests.length;
+  const unsentRsvpGuests = guestList.filter(
+    (g) => g.sentAt === null && g.email !== null,
+  );
+  const showRsvpSendBanner =
+    isTodayOrAfter(BULK_RSVP_INVITE_AVAILABLE_DATE) &&
+    unsentRsvpGuests.length > 0;
 
   // Add guest form
   const [addName, setAddName] = useState("");
@@ -133,7 +230,14 @@ export default function AdminDashboard({
   const [inviteGuestId, setInviteGuestId] = useState<number | null>(null);
   const [inviteNote, setInviteNote] = useState(DEFAULT_NOTE);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [sendRsvpConfirmOpen, setSendRsvpConfirmOpen] = useState(false);
+  const [bulkInviteLoading, setBulkInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [bulkInviteResult, setBulkInviteResult] = useState<{
+    sent: number;
+    failed: number;
+    skipped: number;
+  } | null>(null);
 
   // Detail modal
   const [detailGuest, setDetailGuest] = useState<GuestRow | null>(null);
@@ -141,6 +245,7 @@ export default function AdminDashboard({
   // Send save the dates
   const [sendStdConfirmOpen, setSendStdConfirmOpen] = useState(false);
   const [sendStdLoading, setSendStdLoading] = useState(false);
+  const [sendStdGuestId, setSendStdGuestId] = useState<number | null>(null);
   const [sendStdError, setSendStdError] = useState<string | null>(null);
   const [sendStdResult, setSendStdResult] = useState<{
     sent: number;
@@ -290,13 +395,23 @@ export default function AdminDashboard({
     setInviteError(null);
   }
 
-  async function handleSendSaveDates() {
-    setSendStdLoading(true);
+  async function sendSaveDates(guestId?: number) {
+    if (guestId === undefined) {
+      setSendStdLoading(true);
+    } else {
+      setSendStdGuestId(guestId);
+    }
     setSendStdError(null);
     const res = await fetch("/api/admin/send-save-the-date", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: guestId === undefined ? undefined : JSON.stringify({ guestId }),
     });
-    setSendStdLoading(false);
+    if (guestId === undefined) {
+      setSendStdLoading(false);
+    } else {
+      setSendStdGuestId(null);
+    }
     if (res.ok) {
       const data = await res.json();
       const results: { id: number; status: string }[] = data.results ?? [];
@@ -312,7 +427,11 @@ export default function AdminDashboard({
           sentIds.has(g.id) ? { ...g, saveTheDateSentAt: now } : g,
         ),
       );
-      setSendStdResult({ sent, failed, skipped });
+      if (guestId === undefined) {
+        setSendStdResult({ sent, failed, skipped });
+      } else if (failed > 0 || sent === 0) {
+        setSendStdError("Save the date was not sent. Check email and token.");
+      }
     } else {
       const data = await res.json().catch(() => ({}));
       setSendStdError(
@@ -320,6 +439,14 @@ export default function AdminDashboard({
           "Failed to send. Please try again.",
       );
     }
+  }
+
+  async function handleSendSaveDates() {
+    await sendSaveDates();
+  }
+
+  async function handleSendSaveDateToGuest(guestId: number) {
+    await sendSaveDates(guestId);
   }
 
   async function handleSendInvite() {
@@ -343,7 +470,38 @@ export default function AdminDashboard({
       closeInviteModal();
     } else {
       const data = await res.json();
-      setInviteError(data.error ?? "Failed to send invite");
+      setInviteError(data.error ?? "Failed to send RSVP");
+    }
+  }
+
+  async function handleSendAllInvites() {
+    setBulkInviteLoading(true);
+    setInviteError(null);
+    setBulkInviteResult(null);
+    const res = await fetch("/api/admin/guests/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: DEFAULT_NOTE }),
+    });
+    setBulkInviteLoading(false);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      const results: { id: number; status: string }[] = data.results ?? [];
+      const sentIds = new Set<number>(
+        results.filter((r) => r.status === "sent").map((r) => r.id),
+      );
+      const now = new Date().toISOString();
+      setGuestList((prev) =>
+        prev.map((g) => (sentIds.has(g.id) ? { ...g, sentAt: now } : g)),
+      );
+      const failed = results.filter((r) => r.status === "failed").length;
+      const skipped = data.skipped ?? 0;
+      setBulkInviteResult({ sent: sentIds.size, failed, skipped });
+    } else {
+      setInviteError(
+        (data as { error?: string }).error ??
+          "Failed to send RSVP invites. Please try again.",
+      );
     }
   }
 
@@ -370,10 +528,61 @@ export default function AdminDashboard({
     }
   }
 
+  function openDeleteWishModal(id: number) {
+    setDeleteWishId(id);
+    setWishActionError(null);
+  }
+
+  function closeDeleteWishModal() {
+    if (deleteWishLoading) return;
+    setDeleteWishId(null);
+  }
+
+  function closeSendRsvpConfirmModal() {
+    if (bulkInviteLoading) return;
+    setSendRsvpConfirmOpen(false);
+    setInviteError(null);
+  }
+
+  async function handleConfirmDeleteWish() {
+    if (deleteWishId === null) return;
+
+    setWishActionError(null);
+    setDeleteWishLoading(true);
+    try {
+      const res = await fetch(`/api/admin/wishes/${deleteWishId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      setDeleteWishLoading(false);
+      if (!res.ok) {
+        setWishActionError(
+          (data as { error?: string }).error ?? "Failed to delete wish.",
+        );
+        return;
+      }
+      setWishList((prev) => prev.filter((w) => w.id !== deleteWishId));
+      setDeleteWishId(null);
+    } catch {
+      setDeleteWishLoading(false);
+      setWishActionError("Failed to delete wish.");
+    }
+  }
+
   const inviteGuest =
     inviteGuestId !== null
       ? (guestList.find((g) => g.id === inviteGuestId) ?? null)
       : null;
+  const deleteWish =
+    deleteWishId !== null
+      ? (wishList.find((w) => w.id === deleteWishId) ?? null)
+      : null;
+  const sendSaveDateConfirmText = `Send a save the date email to ${unsentStdCount} ${
+    unsentStdCount === 1 ? "guest" : "guests"
+  } who haven't received one yet?`;
+  const sendRsvpConfirmText = `Send an RSVP invite to ${unsentRsvpGuests.length} ${
+    unsentRsvpGuests.length === 1 ? "guest" : "guests"
+  } who haven't received one yet?`;
 
   return (
     <div
@@ -390,12 +599,14 @@ export default function AdminDashboard({
           .adm-name-btn { display: inline !important; }
           .adm-name-txt { display: none !important; }
           .adm-summary { justify-content: center; }
+          .adm-summary-card { flex: 1 1 calc(50% - 6px); max-width: calc(50% - 6px); }
         }
         @media (min-width: 640px) {
           .adm-col { display: table-cell !important; }
           .adm-name-btn { display: none !important; }
           .adm-name-txt { display: inline !important; }
           .adm-summary { justify-content: flex-start; }
+          .adm-summary-card { flex: 1 1 0; }
         }
       `}</style>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
@@ -562,67 +773,136 @@ export default function AdminDashboard({
           )}
         </div>
 
-        {/* Send Save the Dates */}
-        <div
-          style={{
-            marginBottom: 40,
-            padding: "28px 32px",
-            border: "1px solid var(--rule)",
-          }}
-        >
-          <div
-            className="font-sans"
-            style={{
-              fontSize: 9,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--subtle)",
-              marginBottom: 12,
-            }}
-          >
-            Save the Dates
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <p
-              className="font-sans"
-              style={{ fontSize: 13, color: "var(--subtle)", margin: 0 }}
-            >
-              {unsentStdCount > 0
-                ? `${unsentStdCount} guest${unsentStdCount === 1 ? "" : "s"} haven't received a save the date yet.`
-                : "All guests have received a save the date."}
-            </p>
-            {unsentStdCount > 0 && (
-              <button
-                onClick={() => {
-                  setSendStdConfirmOpen(true);
-                  setSendStdError(null);
-                  setSendStdResult(null);
-                }}
+        {/* Operational alerts */}
+        {(unsentStdCount > 0 ||
+          showRsvpSendBanner ||
+          sendStdError ||
+          inviteError) && (
+          <div style={{ display: "grid", gap: 12, marginBottom: 40 }}>
+            {sendStdError && (
+              <div
                 className="font-sans"
                 style={{
-                  fontSize: 10,
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  background: "var(--mauve)",
-                  color: "var(--white)",
-                  border: "none",
-                  padding: "9px 18px",
-                  cursor: "pointer",
+                  padding: "14px 18px",
+                  border: "1px solid var(--mauve-light)",
+                  color: "var(--mauve-dark)",
+                  fontSize: 12,
+                  lineHeight: 1.5,
                 }}
               >
-                Send Save the Dates
-              </button>
+                {sendStdError}
+              </div>
+            )}
+            {inviteError && inviteGuestId === null && (
+              <div
+                className="font-sans"
+                style={{
+                  padding: "14px 18px",
+                  border: "1px solid var(--mauve-light)",
+                  color: "var(--mauve-dark)",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}
+              >
+                {inviteError}
+              </div>
+            )}
+            {unsentStdCount > 0 && (
+              <div
+                style={{
+                  padding: "18px 20px",
+                  border: "1px solid var(--rule)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 14,
+                  flexWrap: "wrap",
+                }}
+              >
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 13,
+                    color: "var(--charcoal)",
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {unsentStdCount} guest
+                  {unsentStdCount === 1 ? "" : "s"} still need save the date
+                  emails.
+                </p>
+                <button
+                  onClick={() => {
+                    setSendStdConfirmOpen(true);
+                    setSendStdError(null);
+                    setSendStdResult(null);
+                  }}
+                  className="font-sans"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    background: "var(--mauve)",
+                    color: "var(--white)",
+                    border: "none",
+                    padding: "9px 18px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Send All Save the Dates
+                </button>
+              </div>
+            )}
+            {showRsvpSendBanner && (
+              <div
+                style={{
+                  padding: "18px 20px",
+                  border: "1px solid var(--rule)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 14,
+                  flexWrap: "wrap",
+                }}
+              >
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 13,
+                    color: "var(--charcoal)",
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  RSVP invite sending is open. {unsentRsvpGuests.length} guest
+                  {unsentRsvpGuests.length === 1 ? "" : "s"} still need RSVP
+                  emails.
+                </p>
+                <button
+                  onClick={() => {
+                    setSendRsvpConfirmOpen(true);
+                    setInviteError(null);
+                    setBulkInviteResult(null);
+                  }}
+                  className="font-sans"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    background: "var(--mauve)",
+                    color: "var(--white)",
+                    border: "none",
+                    padding: "9px 18px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Send All RSVP Invites
+                </button>
+              </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Summary */}
         <div
@@ -634,12 +914,246 @@ export default function AdminDashboard({
             flexWrap: "wrap",
           }}
         >
-          <SummaryCard label="Invited" value={guestList.length} />
-          <SummaryCard label="Dates sent" value={stdSent.length} />
+          <SummaryCard label="Guests" value={guestList.length} />
           <SummaryCard label="Responded" value={responded.length} />
           <SummaryCard label="Attending" value={attending.length} />
           <SummaryCard label="Not attending" value={notAttending.length} />
-          <SummaryCard label="Wishes" value={visibleWishes.length} />
+        </div>
+
+        {/* Guest table */}
+        <div
+          className="font-sans"
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--subtle)",
+            marginBottom: 14,
+          }}
+        >
+          Guests ({guestList.length})
+        </div>
+        <div style={{ overflowX: "auto", marginBottom: 48 }}>
+          {guestList.length === 0 ? (
+            <p
+              className="font-sans"
+              style={{
+                fontSize: 13,
+                color: "var(--subtle)",
+                padding: "12px 0",
+              }}
+            >
+              No guests yet.
+            </p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Name</th>
+                  <th className="adm-col" style={th}>
+                    Email
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Save the Date
+                  </th>
+                  <th className="adm-col" style={th}>
+                    RSVP Sent
+                  </th>
+                  <th style={th}>Status</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {guestList.map((g) => {
+                  const canSendSaveTheDate =
+                    g.saveTheDateSentAt === null &&
+                    g.email !== null &&
+                    g.hasSaveTheDateToken;
+                  const canSendInvite = g.sentAt === null && g.email !== null;
+                  const saveDateStatusLabel = g.saveTheDateSentAt
+                    ? "Date Sent"
+                    : g.email === null
+                      ? "No Email"
+                      : !g.hasSaveTheDateToken
+                        ? "No Link"
+                        : "No Date";
+                  const rsvpStatusLabel = g.sentAt
+                    ? "RSVP Sent"
+                    : g.email === null
+                      ? "No Email"
+                      : "No RSVP";
+                  return (
+                    <tr key={g.id}>
+                      <td style={cell}>
+                        <button
+                          onClick={() => setDetailGuest(g)}
+                          className="font-sans adm-name-btn"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            margin: 0,
+                            cursor: "pointer",
+                            fontSize: 13,
+                            color: "var(--charcoal)",
+                            textAlign: "left",
+                            textDecoration: "underline",
+                            textDecorationColor: "var(--rule)",
+                            textUnderlineOffset: "3px",
+                          }}
+                        >
+                          {g.name ?? "—"}
+                        </button>
+                        <span className="adm-name-txt">{g.name ?? "—"}</span>
+                      </td>
+                      <td className="adm-col" style={cell}>
+                        {g.email ?? "—"}
+                      </td>
+                      <td
+                        className="adm-col"
+                        style={{ ...cell, whiteSpace: "nowrap" }}
+                      >
+                        {g.saveTheDateSentAt
+                          ? formatDate(g.saveTheDateSentAt)
+                          : "—"}
+                      </td>
+                      <td
+                        className="adm-col"
+                        style={{ ...cell, whiteSpace: "nowrap" }}
+                      >
+                        {g.sentAt ? formatDate(g.sentAt) : "—"}
+                      </td>
+                      <td style={{ ...cell, whiteSpace: "nowrap" }}>
+                        {g.rsvp ? (
+                          <span
+                            style={{
+                              color: g.rsvp.attending
+                                ? "var(--sage)"
+                                : "var(--mauve-dark)",
+                            }}
+                          >
+                            {g.rsvp.attending ? "Attending" : "Declined"}
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--subtle)" }}>
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...cell, minWidth: 250 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            justifyContent: "flex-end",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {canSendSaveTheDate ? (
+                            <button
+                              onClick={() => handleSendSaveDateToGuest(g.id)}
+                              disabled={sendStdGuestId === g.id}
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                background: "none",
+                                border: "1px solid var(--mauve-light)",
+                                color: "var(--mauve-dark)",
+                                padding: "4px 10px",
+                                cursor:
+                                  sendStdGuestId === g.id
+                                    ? "default"
+                                    : "pointer",
+                                opacity: sendStdGuestId === g.id ? 0.6 : 1,
+                              }}
+                            >
+                              {sendStdGuestId === g.id
+                                ? "Sending…"
+                                : "Send Date"}
+                            </button>
+                          ) : (
+                            <span
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                color: g.saveTheDateSentAt
+                                  ? "var(--sage)"
+                                  : "var(--subtle)",
+                                padding: "5px 0",
+                              }}
+                            >
+                              {saveDateStatusLabel}
+                            </span>
+                          )}
+                          {canSendInvite ? (
+                            <button
+                              onClick={() => openInviteModal(g.id)}
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                background: "none",
+                                border: "1px solid var(--mauve-light)",
+                                color: "var(--mauve-dark)",
+                                padding: "4px 10px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Send RSVP
+                            </button>
+                          ) : (
+                            <span
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                color: g.sentAt
+                                  ? "var(--sage)"
+                                  : "var(--subtle)",
+                                padding: "5px 0",
+                              }}
+                            >
+                              {rsvpStatusLabel}
+                            </span>
+                          )}
+                          {g.rsvp && (
+                            <button
+                              onClick={() => openResetModal(g.id)}
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                width: 68,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                background: "none",
+                                border: "1px solid var(--rule)",
+                                color: "var(--subtle)",
+                                padding: "4px 10px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* RSVP table */}
@@ -688,7 +1202,6 @@ export default function AdminDashboard({
                   <th className="adm-col" style={th}>
                     RSVP&rsquo;d
                   </th>
-                  <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
@@ -745,24 +1258,6 @@ export default function AdminDashboard({
                     >
                       {formatDate(g.usedAt)}
                     </td>
-                    <td style={{ ...cell, whiteSpace: "nowrap" }}>
-                      <button
-                        onClick={() => openResetModal(g.id)}
-                        className="font-sans"
-                        style={{
-                          fontSize: 9,
-                          letterSpacing: "0.15em",
-                          textTransform: "uppercase",
-                          background: "none",
-                          border: "1px solid var(--rule)",
-                          color: "var(--subtle)",
-                          padding: "4px 10px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Reset
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -804,12 +1299,8 @@ export default function AdminDashboard({
                     Email
                   </th>
                   <th className="adm-col" style={th}>
-                    Added
+                    RSVP Sent
                   </th>
-                  <th className="adm-col" style={th}>
-                    Save the Date
-                  </th>
-                  <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
@@ -844,64 +1335,7 @@ export default function AdminDashboard({
                       className="adm-col"
                       style={{ ...cell, whiteSpace: "nowrap" }}
                     >
-                      {formatDate(g.createdAt)}
-                    </td>
-                    <td
-                      className="adm-col"
-                      style={{ ...cell, whiteSpace: "nowrap" }}
-                    >
-                      {g.saveTheDateSentAt !== null ? (
-                        <span
-                          className="font-sans"
-                          style={{
-                            fontSize: 9,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            color: "var(--sage)",
-                          }}
-                        >
-                          Sent ✓
-                        </span>
-                      ) : (
-                        <span
-                          className="font-sans"
-                          style={{ fontSize: 12, color: "var(--subtle)" }}
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ ...cell, whiteSpace: "nowrap" }}>
-                      {g.sentAt !== null ? (
-                        <span
-                          className="font-sans"
-                          style={{
-                            fontSize: 9,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            color: "var(--sage)",
-                          }}
-                        >
-                          Sent ✓
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => openInviteModal(g.id)}
-                          className="font-sans"
-                          style={{
-                            fontSize: 9,
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            background: "none",
-                            border: "1px solid var(--mauve-light)",
-                            color: "var(--mauve-dark)",
-                            padding: "4px 10px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          Send Invite
-                        </button>
-                      )}
+                      {g.sentAt ? formatDate(g.sentAt) : "—"}
                     </td>
                   </tr>
                 ))}
@@ -971,15 +1405,6 @@ export default function AdminDashboard({
                       {formatDate(w.createdAt)}
                     </td>
                     <td style={cell}>
-                      <span
-                        style={{
-                          color: w.hidden ? "var(--mauve-dark)" : "var(--sage)",
-                        }}
-                      >
-                        {w.hidden ? "Hidden" : "Visible"}
-                      </span>
-                    </td>
-                    <td style={cell}>
                       <button
                         onClick={() => handleToggleWishHidden(w.id, !w.hidden)}
                         className="font-sans"
@@ -989,12 +1414,34 @@ export default function AdminDashboard({
                           textTransform: "uppercase",
                           background: "none",
                           border: "1px solid var(--rule)",
-                          color: "var(--subtle)",
+                          color: w.hidden ? "var(--mauve-dark)" : "var(--sage)",
                           padding: "6px 10px",
                           cursor: "pointer",
                         }}
                       >
-                        {w.hidden ? "Show" : "Hide"}
+                        {w.hidden ? "Hidden" : "Visible"}
+                      </button>
+                    </td>
+                    <td style={cell}>
+                      <button
+                        onClick={() => openDeleteWishModal(w.id)}
+                        className="font-sans"
+                        aria-label={`Delete wish from ${w.name}`}
+                        title="Delete wish"
+                        style={{
+                          width: 30,
+                          height: 30,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "none",
+                          border: "1px solid var(--rule)",
+                          color: "var(--mauve-dark)",
+                          padding: 0,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <TrashIcon />
                       </button>
                     </td>
                   </tr>
@@ -1081,7 +1528,7 @@ export default function AdminDashboard({
                               : "Not yet sent",
                           },
                           {
-                            label: "Invite sent",
+                            label: "RSVP sent",
                             value: g.sentAt
                               ? formatDate(g.sentAt)
                               : "Not yet sent",
@@ -1256,6 +1703,127 @@ export default function AdminDashboard({
           );
         })()}
 
+      {/* Delete Wish Modal */}
+      {deleteWishId !== null && deleteWish && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(26, 26, 26, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeDeleteWishModal();
+          }}
+        >
+          <div
+            style={{
+              background: "var(--white)",
+              padding: "32px",
+              maxWidth: 400,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 6,
+              }}
+            >
+              Delete Wish
+            </div>
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 14,
+                color: "var(--charcoal)",
+                marginBottom: 10,
+                lineHeight: 1.5,
+              }}
+            >
+              Delete {deleteWish.name}&rsquo;s wish? This cannot be undone.
+            </div>
+            <p
+              className="font-sans"
+              style={{
+                fontSize: 12,
+                color: "var(--subtle)",
+                marginTop: 0,
+                marginBottom: 20,
+                lineHeight: 1.6,
+              }}
+            >
+              {deleteWish.message}
+            </p>
+            {wishActionError && (
+              <p
+                className="font-sans"
+                style={{
+                  fontSize: 12,
+                  color: "var(--mauve-dark)",
+                  marginBottom: 16,
+                  marginTop: 0,
+                }}
+              >
+                {wishActionError}
+              </p>
+            )}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={closeDeleteWishModal}
+                disabled={deleteWishLoading}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "none",
+                  border: "1px solid var(--rule)",
+                  color: "var(--subtle)",
+                  padding: "9px 18px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteWish}
+                disabled={deleteWishLoading}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "var(--mauve-dark)",
+                  color: "var(--white)",
+                  border: "none",
+                  padding: "9px 18px",
+                  cursor: deleteWishLoading ? "default" : "pointer",
+                  opacity: deleteWishLoading ? 0.6 : 1,
+                }}
+              >
+                {deleteWishLoading ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Send Save the Dates Modal */}
       {sendStdConfirmOpen && (
         <div
@@ -1375,10 +1943,9 @@ export default function AdminDashboard({
                     lineHeight: 1.5,
                   }}
                 >
-                  Send a save the date email to {unsentStdCount} guest{" "}
-                  {unsentStdCount === 1 ? "" : "s"} who haven&rsquo;t received
-                  one yet?
+                  {sendSaveDateConfirmText}
                 </p>
+                <RecipientList guests={unsentStdGuests} />
                 {sendStdError && (
                   <p
                     className="font-sans"
@@ -1441,7 +2008,191 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Invite Modal */}
+      {/* Send RSVP Invites Modal */}
+      {sendRsvpConfirmOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(26, 26, 26, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !bulkInviteLoading)
+              closeSendRsvpConfirmModal();
+          }}
+        >
+          <div
+            style={{
+              background: "var(--white)",
+              padding: "32px",
+              maxWidth: 440,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 6,
+              }}
+            >
+              Send RSVP Invites
+            </div>
+            {bulkInviteResult !== null ? (
+              <>
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 14,
+                    color: "var(--charcoal)",
+                    marginBottom: 8,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {bulkInviteResult.failed === 0
+                    ? `${bulkInviteResult.sent} RSVP invite${bulkInviteResult.sent === 1 ? "" : "s"} sent successfully.`
+                    : `Sent ${bulkInviteResult.sent}, failed ${bulkInviteResult.failed}.`}
+                </p>
+                {bulkInviteResult.skipped > 0 && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--subtle)",
+                      marginBottom: 8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {bulkInviteResult.skipped} guest
+                    {bulkInviteResult.skipped === 1 ? "" : "s"} skipped — no
+                    email on file.
+                  </p>
+                )}
+                {bulkInviteResult.failed > 0 && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--mauve-dark)",
+                      marginBottom: 8,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Failed guests were not marked as sent and will be retried on
+                    the next send.
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: 16,
+                  }}
+                >
+                  <button
+                    onClick={closeSendRsvpConfirmModal}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: 14,
+                    color: "var(--charcoal)",
+                    marginBottom: 20,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {sendRsvpConfirmText}
+                </p>
+                <RecipientList guests={unsentRsvpGuests} />
+                {inviteError && (
+                  <p
+                    className="font-sans"
+                    style={{
+                      fontSize: 12,
+                      color: "var(--mauve-dark)",
+                      marginBottom: 16,
+                      marginTop: 0,
+                    }}
+                  >
+                    {inviteError}
+                  </p>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    onClick={closeSendRsvpConfirmModal}
+                    disabled={bulkInviteLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      color: "var(--subtle)",
+                      padding: "9px 18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendAllInvites}
+                    disabled={bulkInviteLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "var(--mauve)",
+                      color: "var(--white)",
+                      border: "none",
+                      padding: "9px 18px",
+                      cursor: bulkInviteLoading ? "default" : "pointer",
+                      opacity: bulkInviteLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {bulkInviteLoading ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* RSVP Modal */}
       {inviteGuestId !== null && inviteGuest && (
         <div
           style={{
@@ -1477,7 +2228,7 @@ export default function AdminDashboard({
                 marginBottom: 6,
               }}
             >
-              Send Invite
+              Send RSVP
             </div>
             <div
               className="font-sans"

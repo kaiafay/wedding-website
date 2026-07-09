@@ -642,7 +642,7 @@ export default function InvitationCard({
                           marginBottom: 14,
                         }}
                       >
-                        Kindly reply by January 1st, 2027
+                        Kindly reply by June 1st, 2027
                       </p>
                       <h2
                         className="font-script"

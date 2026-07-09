@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { guests } from "@/lib/schema";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 import { validateSession } from "@/lib/auth";
 import {
@@ -19,13 +19,22 @@ export async function POST(request: NextRequest) {
   }
 
   const dry = request.nextUrl.searchParams.get("dry") === "true";
+  const body = await request.json().catch(() => ({}));
+  const guestId =
+    typeof body.guestId === "number" && Number.isInteger(body.guestId)
+      ? body.guestId
+      : null;
   const siteUrl = getEmailSiteUrl();
   const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
 
   const pending = await db
     .select()
     .from(guests)
-    .where(isNull(guests.saveTheDateSentAt));
+    .where(
+      guestId === null
+        ? isNull(guests.saveTheDateSentAt)
+        : and(eq(guests.id, guestId), isNull(guests.saveTheDateSentAt)),
+    );
 
   const sendable = pending.filter((g) => g.email && g.saveTheDateToken);
   const skipped = pending.length - sendable.length;

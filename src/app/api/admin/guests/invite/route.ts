@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { guests } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 import { validateSession } from "@/lib/auth";
 import {
@@ -18,48 +18,70 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { guestId, note } = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
 
-  if (!guestId || !note) {
-    return NextResponse.json({ error: "Missing guestId or note" }, { status: 400 });
+  const guestId =
+    "guestId" in body &&
+    typeof body.guestId === "number" &&
+    Number.isInteger(body.guestId)
+      ? body.guestId
+      : null;
+  const note = "note" in body && typeof body.note === "string" ? body.note : "";
+
+  if (!note) {
+    return NextResponse.json({ error: "Missing note" }, { status: 400 });
   }
 
   if (note.length > 2000) {
     return NextResponse.json({ error: "Note exceeds 2000 characters" }, { status: 400 });
   }
 
-  const [guest] = await db.select().from(guests).where(eq(guests.id, guestId));
-
-  if (!guest) {
-    return NextResponse.json({ error: "Guest not found" }, { status: 404 });
-  }
-  if (!guest.email) {
-    return NextResponse.json({ error: "Guest has no email address" }, { status: 400 });
-  }
-
   const siteUrl = getEmailSiteUrl();
-  const rsvpUrl = buildRsvpUrl(siteUrl, guest.token);
-  const guestName = guest.name ?? "Friend";
+  const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
+  const pending = await db
+    .select()
+    .from(guests)
+    .where(
+      guestId === null
+        ? isNull(guests.sentAt)
+        : and(eq(guests.id, guestId), isNull(guests.sentAt)),
+    );
 
-  try {
-    const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
-    await resend.emails.send({
-      from,
-      to: guest.email,
-      subject: "You're Invited — Kaia & Richard, July 10th 2027",
-      html: buildInviteEmailHtml({ guestName, note, rsvpUrl, siteUrl }),
-      text: buildInviteEmailText({ guestName, note, rsvpUrl }),
-    });
-  } catch (err) {
-    console.error("Failed to send email:", err);
-    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+  if (guestId !== null && pending.length === 0) {
+    return NextResponse.json({ error: "Guest not found or already sent" }, { status: 404 });
   }
 
-  try {
-    await db.update(guests).set({ sentAt: new Date() }).where(eq(guests.id, guestId));
-  } catch (err) {
-    console.error("Failed to update sentAt:", err);
+  const sendable = pending.filter((guest) => guest.email);
+  const skipped = pending.length - sendable.length;
+  const results: { id: number; status: "sent" | "failed" }[] = [];
+
+  for (const guest of sendable) {
+    const rsvpUrl = buildRsvpUrl(siteUrl, guest.token);
+    const guestName = guest.name ?? "Friend";
+
+    try {
+      await resend.emails.send({
+        from,
+        to: guest.email!,
+        subject: "You're Invited — Kaia & Richard, July 10th 2027",
+        html: buildInviteEmailHtml({ guestName, note, rsvpUrl, siteUrl }),
+        text: buildInviteEmailText({ guestName, note, rsvpUrl }),
+      });
+
+      await db.update(guests).set({ sentAt: new Date() }).where(eq(guests.id, guest.id));
+      results.push({ id: guest.id, status: "sent" });
+    } catch (err) {
+      console.error("Failed to send RSVP invite:", err);
+      results.push({ id: guest.id, status: "failed" });
+    }
   }
 
-  return NextResponse.json({ success: true });
+  if (guestId !== null && results.some((result) => result.status === "failed")) {
+    return NextResponse.json({ error: "Failed to send email", results, skipped }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, results, skipped });
 }
