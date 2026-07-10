@@ -1109,90 +1109,6 @@ export default function AdminDashboard({
           <SummaryCard label="Not attending" value={notAttending.length} />
         </div>
 
-        {/* Save-the-date send list */}
-        {unsentStdParties.length > 0 && (
-          <div style={{ marginBottom: 48 }}>
-            <div
-              className="font-sans"
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--subtle)",
-                marginBottom: 14,
-              }}
-            >
-              Save-the-dates ({unsentStdParties.length})
-            </div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {unsentStdParties.map((party) => {
-                const recipient = getPartyRecipient(party);
-                const label =
-                  party.guests.length > 1
-                    ? party.displayName
-                    : party.guests[0]?.name ?? party.displayName;
-                return (
-                  <div
-                    key={party.id}
-                    style={{
-                      border: "1px solid var(--rule)",
-                      padding: "12px 14px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div>
-                      <div
-                        className="font-sans"
-                        style={{ fontSize: 13, color: "var(--charcoal)" }}
-                      >
-                        {label}
-                      </div>
-                      <div
-                        className="font-sans"
-                        style={{
-                          fontSize: 11,
-                          color: "var(--subtle)",
-                          marginTop: 2,
-                        }}
-                      >
-                        {recipient?.email ?? "No email"}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleSendSaveDateToParty(party.id)}
-                      disabled={sendStdPartyId === party.id || !recipient?.email}
-                      className="font-sans"
-                      style={{
-                        fontSize: 9,
-                        letterSpacing: "0.15em",
-                        textTransform: "uppercase",
-                        background: "none",
-                        border: "1px solid var(--mauve-light)",
-                        color: "var(--mauve-dark)",
-                        padding: "6px 12px",
-                        cursor:
-                          sendStdPartyId === party.id || !recipient?.email
-                            ? "default"
-                            : "pointer",
-                        opacity:
-                          sendStdPartyId === party.id || !recipient?.email
-                            ? 0.6
-                            : 1,
-                      }}
-                    >
-                      {sendStdPartyId === party.id ? "Sending…" : "Send Date"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Guest table */}
         <div
           style={{
@@ -1268,19 +1184,13 @@ export default function AdminDashboard({
                 {guestList.map((g) => {
                   const party = partyList.find((p) => p.id === g.party.id);
                   const recipient = party ? getPartyRecipient(party) : null;
+                  const isSaveDateRecipient = recipient?.id === g.id;
+                  const canSendSaveDate =
+                    isSaveDateRecipient &&
+                    !g.party.saveTheDateSentAt &&
+                    Boolean(recipient?.email) &&
+                    g.party.hasSaveTheDateToken;
                   const canSendInvite = g.sentAt === null && g.email !== null;
-                  const saveDateStatusLabel = g.party.saveTheDateSentAt
-                    ? "Date Sent"
-                    : !recipient?.email
-                      ? "No Email"
-                      : !g.party.hasSaveTheDateToken
-                        ? "No Link"
-                        : "No Date";
-                  const rsvpStatusLabel = g.sentAt
-                    ? "RSVP Sent"
-                    : g.email === null
-                      ? "No Email"
-                      : "No RSVP";
                   return (
                     <tr key={g.id}>
                       <td style={cell}>
@@ -1337,15 +1247,68 @@ export default function AdminDashboard({
                         className="adm-col"
                         style={{ ...cell, whiteSpace: "nowrap" }}
                       >
-                        {g.party.saveTheDateSentAt
-                          ? formatDate(g.party.saveTheDateSentAt)
-                          : "—"}
+                        {g.party.saveTheDateSentAt ? (
+                          formatDate(g.party.saveTheDateSentAt)
+                        ) : canSendSaveDate ? (
+                          <button
+                            onClick={() => handleSendSaveDateToParty(g.party.id)}
+                            disabled={sendStdPartyId === g.party.id}
+                            className="font-sans"
+                            style={{
+                              ...actionControl,
+                              fontSize: 9,
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              background: "none",
+                              border: "1px solid var(--mauve-light)",
+                              color: "var(--mauve-dark)",
+                              padding: "4px 10px",
+                              cursor:
+                                sendStdPartyId === g.party.id
+                                  ? "default"
+                                  : "pointer",
+                              opacity: sendStdPartyId === g.party.id ? 0.6 : 1,
+                            }}
+                          >
+                            {sendStdPartyId === g.party.id
+                              ? "Sending…"
+                              : "Send Date"}
+                          </button>
+                        ) : isSaveDateRecipient && !recipient?.email ? (
+                          <span style={{ color: "var(--subtle)" }}>No Email</span>
+                        ) : isSaveDateRecipient && !g.party.hasSaveTheDateToken ? (
+                          <span style={{ color: "var(--subtle)" }}>No Link</span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td
                         className="adm-col"
                         style={{ ...cell, whiteSpace: "nowrap" }}
                       >
-                        {g.sentAt ? formatDate(g.sentAt) : "—"}
+                        {g.sentAt ? (
+                          formatDate(g.sentAt)
+                        ) : canSendInvite ? (
+                          <button
+                            onClick={() => openInviteModal(g.id)}
+                            className="font-sans"
+                            style={{
+                              ...actionControl,
+                              fontSize: 9,
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              background: "none",
+                              border: "1px solid var(--mauve-light)",
+                              color: "var(--mauve-dark)",
+                              padding: "4px 10px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Send RSVP
+                          </button>
+                        ) : (
+                          <span style={{ color: "var(--subtle)" }}>No Email</span>
+                        )}
                       </td>
                       <td style={{ ...cell, whiteSpace: "nowrap" }}>
                         {g.rsvp ? (
@@ -1364,7 +1327,7 @@ export default function AdminDashboard({
                           </span>
                         )}
                       </td>
-                      <td style={{ ...cell, minWidth: 250 }}>
+                      <td style={{ ...cell, minWidth: 80 }}>
                         <div
                           style={{
                             display: "flex",
@@ -1373,21 +1336,6 @@ export default function AdminDashboard({
                             flexWrap: "wrap",
                           }}
                         >
-                          <span
-                            className="font-sans"
-                            style={{
-                              ...actionControl,
-                              fontSize: 9,
-                              letterSpacing: "0.15em",
-                              textTransform: "uppercase",
-                              color: g.party.saveTheDateSentAt
-                                ? "var(--sage)"
-                                : "var(--subtle)",
-                              padding: "5px 0",
-                            }}
-                          >
-                            {saveDateStatusLabel}
-                          </span>
                           <button
                             onClick={() => openEditGuestModal(g)}
                             className="font-sans"
@@ -1406,41 +1354,6 @@ export default function AdminDashboard({
                           >
                             Edit
                           </button>
-                          {canSendInvite ? (
-                            <button
-                              onClick={() => openInviteModal(g.id)}
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                background: "none",
-                                border: "1px solid var(--mauve-light)",
-                                color: "var(--mauve-dark)",
-                                padding: "4px 10px",
-                                cursor: "pointer",
-                              }}
-                            >
-                              Send RSVP
-                            </button>
-                          ) : (
-                            <span
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                color: g.sentAt
-                                  ? "var(--sage)"
-                                  : "var(--subtle)",
-                                padding: "5px 0",
-                              }}
-                            >
-                              {rsvpStatusLabel}
-                            </span>
-                          )}
                           {g.rsvp && (
                             <button
                               onClick={() => openResetModal(g.id)}
