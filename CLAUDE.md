@@ -33,7 +33,7 @@ The app is a single-page wedding site (`src/app/page.tsx`) with three vertically
 
 ### One-time token flow
 
-Every guest gets a unique invitation URL `/?token=<token>`. On load, `page.tsx` calls `GET /api/token?token=<token>` and receives the guest's name, their DB id, and whether the token is still valid. The RSVP section renders differently based on that response:
+Every guest gets a unique RSVP URL `/?token=<token>`. On load, `page.tsx` calls `GET /api/token?token=<token>` and receives the guest's name, their DB id, and whether the token is still valid. The RSVP section renders differently based on that response:
 
 - No/invalid token → public invitation view (no form)
 - Valid token → envelope animation → RSVP form pre-filled with guest name
@@ -41,12 +41,15 @@ Every guest gets a unique invitation URL `/?token=<token>`. On load, `page.tsx` 
 
 `POST /api/rsvp` re-validates the token and uses a **single database transaction** to insert the RSVP and set `guests.usedAt`, preventing double submission.
 
+Save-the-date delivery is party-based. A party has a display name, one delivery email, and one save-the-date token. Each party can contain one or more guests; RSVP tracking remains individual.
+
 ### Data model (`src/lib/schema.ts`)
 
-- `guests`: `id`, `token` (unique), `name`, `email`, `usedAt` (null until submitted), `createdAt`
+- `parties`: `id`, `displayName`, `email`, `saveTheDateToken` (unique), `saveTheDateSentAt`, `createdAt`
+- `guests`: `id`, `partyId`, `token` (unique), `name`, `email`, `usedAt` (null until submitted), `sentAt`, `createdAt`
 - `rsvps`: `id`, `guestId` (FK → guests), `attending` (boolean), `mealPreference` ("Chicken" | "Salmon" | "Vegetarian" | null), `message`, `createdAt`
 
-Token generation and guest seeding happen outside this app (no admin UI yet).
+The admin UI can create parties with one or more guests. This repo ignores `drizzle/` and uses the Drizzle push workflow for schema updates.
 
 ### Component tree
 

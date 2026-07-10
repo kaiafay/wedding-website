@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const DEFAULT_NOTE =
@@ -19,14 +19,27 @@ type RsvpRow = {
 
 type GuestRow = {
   id: number;
+  partyId: number;
   name: string | null;
   email: string | null;
   usedAt: string | null;
   sentAt: string | null;
+  createdAt: string;
+  party: PartySummary;
+  rsvp: RsvpRow | null;
+};
+
+type PartySummary = {
+  id: number;
+  displayName: string;
+  email: string;
   saveTheDateSentAt: string | null;
   hasSaveTheDateToken: boolean;
   createdAt: string;
-  rsvp: RsvpRow | null;
+};
+
+type PartyRow = PartySummary & {
+  guests: GuestRow[];
 };
 
 type WishRow = {
@@ -184,6 +197,43 @@ function TrashIcon() {
   );
 }
 
+function PartyRecipientList({ parties }: { parties: PartyRow[] }) {
+  if (parties.length === 0) return null;
+  return (
+    <div
+      style={{
+        border: "1px solid var(--rule)",
+        maxHeight: 220,
+        overflowY: "auto",
+        marginBottom: 16,
+      }}
+    >
+      {parties.map((party) => (
+        <div
+          key={party.id}
+          style={{
+            padding: "10px 12px",
+            borderBottom: "1px solid var(--rule)",
+          }}
+        >
+          <div
+            className="font-sans"
+            style={{ fontSize: 13, color: "var(--charcoal)" }}
+          >
+            {party.displayName}
+          </div>
+          <div
+            className="font-sans"
+            style={{ fontSize: 11, color: "var(--subtle)", marginTop: 2 }}
+          >
+            {party.email}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDashboard({
   guests,
   wishes: initialWishes,
@@ -198,16 +248,34 @@ export default function AdminDashboard({
   const [deleteWishId, setDeleteWishId] = useState<number | null>(null);
   const [deleteWishLoading, setDeleteWishLoading] = useState(false);
 
+  const partyList = useMemo(() => {
+    const byParty = new Map<number, PartyRow>();
+    for (const guest of guestList) {
+      const existing = byParty.get(guest.party.id);
+      if (existing) {
+        existing.guests.push(guest);
+      } else {
+        byParty.set(guest.party.id, { ...guest.party, guests: [guest] });
+      }
+    }
+    return Array.from(byParty.values()).sort((a, b) =>
+      a.createdAt.localeCompare(b.createdAt),
+    );
+  }, [guestList]);
+
   const responded = guestList.filter((g) => g.rsvp !== null);
   const attending = responded.filter((g) => g.rsvp?.attending);
   const notAttending = responded.filter((g) => !g.rsvp?.attending);
   const notResponded = guestList.filter(
     (g) => g.rsvp === null && g.sentAt !== null,
   );
-  const unsentStdGuests = guestList.filter(
-    (g) => g.saveTheDateSentAt === null && g.email !== null && g.hasSaveTheDateToken,
+  const unsentStdParties = partyList.filter(
+    (party) =>
+      party.saveTheDateSentAt === null &&
+      party.email !== "" &&
+      party.hasSaveTheDateToken,
   );
-  const unsentStdCount = unsentStdGuests.length;
+  const unsentStdCount = unsentStdParties.length;
   const unsentRsvpGuests = guestList.filter(
     (g) => g.sentAt === null && g.email !== null,
   );
@@ -215,9 +283,10 @@ export default function AdminDashboard({
     isTodayOrAfter(BULK_RSVP_INVITE_AVAILABLE_DATE) &&
     unsentRsvpGuests.length > 0;
 
-  // Add guest form
-  const [addName, setAddName] = useState("");
-  const [addEmail, setAddEmail] = useState("");
+  // Add party form
+  const [addPartyName, setAddPartyName] = useState("");
+  const [addPartyEmail, setAddPartyEmail] = useState("");
+  const [addGuestNames, setAddGuestNames] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -245,7 +314,7 @@ export default function AdminDashboard({
   // Send save the dates
   const [sendStdConfirmOpen, setSendStdConfirmOpen] = useState(false);
   const [sendStdLoading, setSendStdLoading] = useState(false);
-  const [sendStdGuestId, setSendStdGuestId] = useState<number | null>(null);
+  const [sendStdPartyId, setSendStdPartyId] = useState<number | null>(null);
   const [sendStdError, setSendStdError] = useState<string | null>(null);
   const [sendStdResult, setSendStdResult] = useState<{
     sent: number;
@@ -352,34 +421,29 @@ export default function AdminDashboard({
     e.preventDefault();
     setAddLoading(true);
     setAddError(null);
+    const guestNames = addGuestNames
+      .split(/\r?\n/)
+      .map((guestName) => guestName.trim())
+      .filter(Boolean);
     const res = await fetch("/api/admin/guests/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: addName, email: addEmail }),
+      body: JSON.stringify({
+        partyDisplayName: addPartyName,
+        partyEmail: addPartyEmail,
+        guestNames,
+      }),
     });
     setAddLoading(false);
     if (res.ok) {
       const data = await res.json();
-      const g = data.guest;
-      setGuestList((prev) => [
-        ...prev,
-        {
-          id: g.id,
-          name: g.name,
-          email: g.email,
-          usedAt: null,
-          sentAt: null,
-          saveTheDateSentAt: null,
-          hasSaveTheDateToken: true,
-          createdAt: g.createdAt,
-          rsvp: null,
-        },
-      ]);
-      setAddName("");
-      setAddEmail("");
+      setGuestList((prev) => [...prev, ...(data.guests ?? [])]);
+      setAddPartyName("");
+      setAddPartyEmail("");
+      setAddGuestNames("");
     } else {
       const data = await res.json();
-      setAddError(data.error ?? "Failed to add guest");
+      setAddError(data.error ?? "Failed to add party");
     }
   }
 
@@ -395,22 +459,22 @@ export default function AdminDashboard({
     setInviteError(null);
   }
 
-  async function sendSaveDates(guestId?: number) {
-    if (guestId === undefined) {
+  async function sendSaveDates(partyId?: number) {
+    if (partyId === undefined) {
       setSendStdLoading(true);
     } else {
-      setSendStdGuestId(guestId);
+      setSendStdPartyId(partyId);
     }
     setSendStdError(null);
     const res = await fetch("/api/admin/send-save-the-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: guestId === undefined ? undefined : JSON.stringify({ guestId }),
+      body: partyId === undefined ? undefined : JSON.stringify({ partyId }),
     });
-    if (guestId === undefined) {
+    if (partyId === undefined) {
       setSendStdLoading(false);
     } else {
-      setSendStdGuestId(null);
+      setSendStdPartyId(null);
     }
     if (res.ok) {
       const data = await res.json();
@@ -424,10 +488,18 @@ export default function AdminDashboard({
       const now = new Date().toISOString();
       setGuestList((prev) =>
         prev.map((g) =>
-          sentIds.has(g.id) ? { ...g, saveTheDateSentAt: now } : g,
+          sentIds.has(g.party.id)
+            ? {
+                ...g,
+                party: {
+                  ...g.party,
+                  saveTheDateSentAt: now,
+                },
+              }
+            : g,
         ),
       );
-      if (guestId === undefined) {
+      if (partyId === undefined) {
         setSendStdResult({ sent, failed, skipped });
       } else if (failed > 0 || sent === 0) {
         setSendStdError("Save the date was not sent. Check email and token.");
@@ -445,8 +517,8 @@ export default function AdminDashboard({
     await sendSaveDates();
   }
 
-  async function handleSendSaveDateToGuest(guestId: number) {
-    await sendSaveDates(guestId);
+  async function handleSendSaveDateToParty(partyId: number) {
+    await sendSaveDates(partyId);
   }
 
   async function handleSendInvite() {
@@ -578,7 +650,7 @@ export default function AdminDashboard({
       ? (wishList.find((w) => w.id === deleteWishId) ?? null)
       : null;
   const sendSaveDateConfirmText = `Send a save the date email to ${unsentStdCount} ${
-    unsentStdCount === 1 ? "guest" : "guests"
+    unsentStdCount === 1 ? "party" : "parties"
   } who haven't received one yet?`;
   const sendRsvpConfirmText = `Send an RSVP invite to ${unsentRsvpGuests.length} ${
     unsentRsvpGuests.length === 1 ? "guest" : "guests"
@@ -650,7 +722,7 @@ export default function AdminDashboard({
           </button>
         </div>
 
-        {/* Add Guest Form */}
+        {/* Add Party Form */}
         <div
           style={{
             marginBottom: 40,
@@ -668,7 +740,7 @@ export default function AdminDashboard({
               marginBottom: 16,
             }}
           >
-            Add Guest
+            Add Party
           </div>
           <form
             onSubmit={handleAddGuest}
@@ -689,14 +761,14 @@ export default function AdminDashboard({
                   color: "var(--subtle)",
                 }}
               >
-                Name
+                Party Name
               </label>
               <input
                 type="text"
-                value={addName}
-                onChange={(e) => setAddName(e.target.value)}
+                value={addPartyName}
+                onChange={(e) => setAddPartyName(e.target.value)}
                 required
-                placeholder="Full name"
+                placeholder="Alice Morgan & Jamie Lee"
                 className="font-sans"
                 style={{
                   fontSize: 13,
@@ -719,12 +791,12 @@ export default function AdminDashboard({
                   color: "var(--subtle)",
                 }}
               >
-                Email
+                Save-the-date Email
               </label>
               <input
                 type="email"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
+                value={addPartyEmail}
+                onChange={(e) => setAddPartyEmail(e.target.value)}
                 required
                 placeholder="email@example.com"
                 className="font-sans"
@@ -736,6 +808,37 @@ export default function AdminDashboard({
                   background: "var(--white)",
                   outline: "none",
                   width: 220,
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--subtle)",
+                }}
+              >
+                Guests
+              </label>
+              <textarea
+                value={addGuestNames}
+                onChange={(e) => setAddGuestNames(e.target.value)}
+                required
+                placeholder={"Alice Morgan\nJamie Lee"}
+                className="font-sans"
+                rows={3}
+                style={{
+                  fontSize: 13,
+                  color: "var(--charcoal)",
+                  border: "1px solid var(--rule)",
+                  padding: "8px 12px",
+                  background: "var(--white)",
+                  outline: "none",
+                  width: 240,
+                  resize: "vertical",
                 }}
               />
             </div>
@@ -755,7 +858,7 @@ export default function AdminDashboard({
                 opacity: addLoading ? 0.6 : 1,
               }}
             >
-              {addLoading ? "Adding…" : "Add Guest"}
+              {addLoading ? "Adding…" : "Add Party"}
             </button>
           </form>
           {addError && (
@@ -828,8 +931,7 @@ export default function AdminDashboard({
                     lineHeight: 1.5,
                   }}
                 >
-                  {unsentStdCount} guest
-                  {unsentStdCount === 1 ? "" : "s"} still need save the date
+                  {unsentStdCount} {unsentStdCount === 1 ? "party" : "parties"} still need save the date
                   emails.
                 </p>
                 <button
@@ -914,10 +1016,144 @@ export default function AdminDashboard({
             flexWrap: "wrap",
           }}
         >
+          <SummaryCard label="Parties" value={partyList.length} />
           <SummaryCard label="Guests" value={guestList.length} />
           <SummaryCard label="Responded" value={responded.length} />
           <SummaryCard label="Attending" value={attending.length} />
           <SummaryCard label="Not attending" value={notAttending.length} />
+        </div>
+
+        {/* Party table */}
+        <div
+          className="font-sans"
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--subtle)",
+            marginBottom: 14,
+          }}
+        >
+          Parties ({partyList.length})
+        </div>
+        <div style={{ overflowX: "auto", marginBottom: 48 }}>
+          {partyList.length === 0 ? (
+            <p
+              className="font-sans"
+              style={{
+                fontSize: 13,
+                color: "var(--subtle)",
+                padding: "12px 0",
+              }}
+            >
+              No parties yet.
+            </p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Party</th>
+                  <th className="adm-col" style={th}>
+                    Email
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Guests
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Save the Date
+                  </th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {partyList.map((party) => {
+                  const canSendSaveTheDate =
+                    party.saveTheDateSentAt === null &&
+                    party.email !== "" &&
+                    party.hasSaveTheDateToken;
+                  const saveDateStatusLabel = party.saveTheDateSentAt
+                    ? "Date Sent"
+                    : !party.email
+                      ? "No Email"
+                      : !party.hasSaveTheDateToken
+                        ? "No Link"
+                        : "No Date";
+                  return (
+                    <tr key={party.id}>
+                      <td style={cell}>{party.displayName}</td>
+                      <td className="adm-col" style={cell}>
+                        {party.email}
+                      </td>
+                      <td className="adm-col" style={cell}>
+                        {party.guests.map((guest) => guest.name ?? "Guest").join(", ")}
+                      </td>
+                      <td
+                        className="adm-col"
+                        style={{ ...cell, whiteSpace: "nowrap" }}
+                      >
+                        {party.saveTheDateSentAt
+                          ? formatDate(party.saveTheDateSentAt)
+                          : "—"}
+                      </td>
+                      <td style={{ ...cell, minWidth: 120 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            justifyContent: "flex-end",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {canSendSaveTheDate ? (
+                            <button
+                              onClick={() => handleSendSaveDateToParty(party.id)}
+                              disabled={sendStdPartyId === party.id}
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                background: "none",
+                                border: "1px solid var(--mauve-light)",
+                                color: "var(--mauve-dark)",
+                                padding: "4px 10px",
+                                cursor:
+                                  sendStdPartyId === party.id
+                                    ? "default"
+                                    : "pointer",
+                                opacity: sendStdPartyId === party.id ? 0.6 : 1,
+                              }}
+                            >
+                              {sendStdPartyId === party.id
+                                ? "Sending…"
+                                : "Send Date"}
+                            </button>
+                          ) : (
+                            <span
+                              className="font-sans"
+                              style={{
+                                ...actionControl,
+                                fontSize: 9,
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                color: party.saveTheDateSentAt
+                                  ? "var(--sage)"
+                                  : "var(--subtle)",
+                                padding: "5px 0",
+                              }}
+                            >
+                              {saveDateStatusLabel}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Guest table */}
@@ -965,16 +1201,12 @@ export default function AdminDashboard({
               </thead>
               <tbody>
                 {guestList.map((g) => {
-                  const canSendSaveTheDate =
-                    g.saveTheDateSentAt === null &&
-                    g.email !== null &&
-                    g.hasSaveTheDateToken;
                   const canSendInvite = g.sentAt === null && g.email !== null;
-                  const saveDateStatusLabel = g.saveTheDateSentAt
+                  const saveDateStatusLabel = g.party.saveTheDateSentAt
                     ? "Date Sent"
-                    : g.email === null
+                    : g.party.email === ""
                       ? "No Email"
-                      : !g.hasSaveTheDateToken
+                      : !g.party.hasSaveTheDateToken
                         ? "No Link"
                         : "No Date";
                   const rsvpStatusLabel = g.sentAt
@@ -1013,8 +1245,8 @@ export default function AdminDashboard({
                         className="adm-col"
                         style={{ ...cell, whiteSpace: "nowrap" }}
                       >
-                        {g.saveTheDateSentAt
-                          ? formatDate(g.saveTheDateSentAt)
+                        {g.party.saveTheDateSentAt
+                          ? formatDate(g.party.saveTheDateSentAt)
                           : "—"}
                       </td>
                       <td
@@ -1049,48 +1281,21 @@ export default function AdminDashboard({
                             flexWrap: "wrap",
                           }}
                         >
-                          {canSendSaveTheDate ? (
-                            <button
-                              onClick={() => handleSendSaveDateToGuest(g.id)}
-                              disabled={sendStdGuestId === g.id}
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                background: "none",
-                                border: "1px solid var(--mauve-light)",
-                                color: "var(--mauve-dark)",
-                                padding: "4px 10px",
-                                cursor:
-                                  sendStdGuestId === g.id
-                                    ? "default"
-                                    : "pointer",
-                                opacity: sendStdGuestId === g.id ? 0.6 : 1,
-                              }}
-                            >
-                              {sendStdGuestId === g.id
-                                ? "Sending…"
-                                : "Send Date"}
-                            </button>
-                          ) : (
-                            <span
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                color: g.saveTheDateSentAt
-                                  ? "var(--sage)"
-                                  : "var(--subtle)",
-                                padding: "5px 0",
-                              }}
-                            >
-                              {saveDateStatusLabel}
-                            </span>
-                          )}
+                          <span
+                            className="font-sans"
+                            style={{
+                              ...actionControl,
+                              fontSize: 9,
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              color: g.party.saveTheDateSentAt
+                                ? "var(--sage)"
+                                : "var(--subtle)",
+                              padding: "5px 0",
+                            }}
+                          >
+                            {saveDateStatusLabel}
+                          </span>
                           {canSendInvite ? (
                             <button
                               onClick={() => openInviteModal(g.id)}
@@ -1523,8 +1728,8 @@ export default function AdminDashboard({
                           { label: "Added", value: formatDate(g.createdAt) },
                           {
                             label: "Save the date sent",
-                            value: g.saveTheDateSentAt
-                              ? formatDate(g.saveTheDateSentAt)
+                            value: g.party.saveTheDateSentAt
+                              ? formatDate(g.party.saveTheDateSentAt)
                               : "Not yet sent",
                           },
                           {
@@ -1888,8 +2093,7 @@ export default function AdminDashboard({
                       lineHeight: 1.5,
                     }}
                   >
-                    {sendStdResult.skipped} guest
-                    {sendStdResult.skipped === 1 ? "" : "s"} skipped — no email
+                    {sendStdResult.skipped} {sendStdResult.skipped === 1 ? "party" : "parties"} skipped — no email
                     or link on file.
                   </p>
                 )}
@@ -1903,7 +2107,7 @@ export default function AdminDashboard({
                       lineHeight: 1.5,
                     }}
                   >
-                    Failed guests were not marked as sent and will be retried on
+                    Failed parties were not marked as sent and will be retried on
                     the next send.
                   </p>
                 )}
@@ -1945,7 +2149,7 @@ export default function AdminDashboard({
                 >
                   {sendSaveDateConfirmText}
                 </p>
-                <RecipientList guests={unsentStdGuests} />
+                <PartyRecipientList parties={unsentStdParties} />
                 {sendStdError && (
                   <p
                     className="font-sans"

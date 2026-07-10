@@ -1,7 +1,7 @@
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/sections/Footer";
 import { db } from "@/lib/db";
-import { guests } from "@/lib/schema";
+import { parties } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import SaveTheDateCard from "./SaveTheDateCard";
 
@@ -13,21 +13,21 @@ export default async function SaveTheDatePage({
   const raw = (await searchParams).token;
   const token = Array.isArray(raw) ? raw[0] : raw;
 
-  let guest: { name: string | null } | null = null;
+  let party: { displayName: string } | null = null;
   if (token) {
     const rows = await db
-      .select({ name: guests.name })
-      .from(guests)
-      .where(eq(guests.saveTheDateToken, token))
+      .select({ displayName: parties.displayName })
+      .from(parties)
+      .where(eq(parties.saveTheDateToken, token))
       .limit(1);
-    if (rows.length > 0) guest = rows[0];
+    if (rows.length > 0) party = rows[0];
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <NavBar />
 
-      {guest === null ? (
+      {party === null ? (
         <section
           style={{
             flex: 1,
@@ -66,13 +66,13 @@ export default async function SaveTheDatePage({
               className="font-serif italic"
               style={{ fontSize: 16, color: "var(--subtle)", lineHeight: 1.7 }}
             >
-              This page is personal to each guest. Check your email for your
+              This page is personal to each invitation. Check your email for your
               invitation link.
             </p>
           </div>
         </section>
       ) : (
-        <SaveTheDateCard guestName={guest.name} />
+        <SaveTheDateCard guestName={party.displayName} />
       )}
 
       <Footer />
