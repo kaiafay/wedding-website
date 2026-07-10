@@ -53,7 +53,7 @@ export default function HeroSection() {
             sizes="(max-width: 768px) 100vw, 50vw"
             style={{
               objectFit: "cover",
-              filter: "saturate(0.7) contrast(1.05)",
+              filter: "saturate(0.88) contrast(1.06) brightness(1.01)",
             }}
             priority
           />
