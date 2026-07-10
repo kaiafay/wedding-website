@@ -129,29 +129,80 @@ export async function PATCH(
         .map((guest) => guest.partyId),
     ),
   );
+  const sentRecipient =
+    existingParty.saveTheDateSentAt === null
+      ? null
+      : existingParty.guests.find(
+          (guest) =>
+            guest.id === existingParty.saveTheDateRecipientGuestId &&
+            guest.email,
+        );
+  const removedSentRecipient =
+    sentRecipient && !nextGuestIds.has(sentRecipient.id) ? sentRecipient : null;
+  const hasInvalidSentState =
+    existingParty.saveTheDateSentAt !== null && !sentRecipient;
 
-  for (const guest of removedGuests) {
-    await createSoloPartyForGuest(guest);
+  if (removedSentRecipient) {
+    for (const guest of removedGuests) {
+      if (guest.id !== removedSentRecipient.id) {
+        await createSoloPartyForGuest(guest);
+      }
+    }
+
+    const shouldBeSolo = guestIds.length === 1;
+    const [onlyGuest] = selectedGuests;
+    const [newParty] = await db
+      .insert(parties)
+      .values({
+        displayName: shouldBeSolo ? (onlyGuest.name ?? "Guest") : displayName,
+        saveTheDateRecipientGuestId: shouldBeSolo
+          ? onlyGuest.email
+            ? onlyGuest.id
+            : null
+          : recipientId,
+        saveTheDateToken: crypto.randomUUID(),
+      })
+      .returning({ id: parties.id });
+
+    await db
+      .update(guests)
+      .set({ partyId: newParty.id })
+      .where(inArray(guests.id, guestIds));
+
+    await db
+      .update(parties)
+      .set({
+        displayName: removedSentRecipient.name ?? "Guest",
+        saveTheDateRecipientGuestId: removedSentRecipient.id,
+      })
+      .where(eq(parties.id, partyId));
+  } else {
+    for (const guest of removedGuests) {
+      await createSoloPartyForGuest(guest);
+    }
+
+    await db
+      .update(guests)
+      .set({ partyId })
+      .where(inArray(guests.id, guestIds));
+
+    const shouldBeSolo = guestIds.length === 1;
+    const [onlyGuest] = selectedGuests;
+    await db
+      .update(parties)
+      .set({
+        displayName: shouldBeSolo ? (onlyGuest.name ?? "Guest") : displayName,
+        saveTheDateRecipientGuestId: shouldBeSolo
+          ? onlyGuest.email
+            ? onlyGuest.id
+            : null
+          : recipientId,
+        saveTheDateSentAt: hasInvalidSentState
+          ? null
+          : existingParty.saveTheDateSentAt,
+      })
+      .where(eq(parties.id, partyId));
   }
-
-  await db
-    .update(guests)
-    .set({ partyId })
-    .where(inArray(guests.id, guestIds));
-
-  const shouldBeSolo = guestIds.length === 1;
-  const [onlyGuest] = selectedGuests;
-  await db
-    .update(parties)
-    .set({
-      displayName: shouldBeSolo ? (onlyGuest.name ?? "Guest") : displayName,
-      saveTheDateRecipientGuestId: shouldBeSolo
-        ? onlyGuest.email
-          ? onlyGuest.id
-          : null
-        : recipientId,
-    })
-    .where(eq(parties.id, partyId));
 
   await normalizeOldParties(oldPartyIds);
 
@@ -203,7 +254,8 @@ export async function DELETE(
   }
 
   const sentRecipient = existingParty.guests.find(
-    (guest) => guest.id === existingParty.saveTheDateRecipientGuestId,
+    (guest) =>
+      guest.id === existingParty.saveTheDateRecipientGuestId && guest.email,
   );
   const retainedGuest = sentRecipient ?? existingParty.guests[0];
   const guestsToSplit = existingParty.guests.filter(

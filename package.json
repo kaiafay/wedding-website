@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:party-db": "node --env-file=.env ./node_modules/.bin/tsx scripts/test-party-db-behavior.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
