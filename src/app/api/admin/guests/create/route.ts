@@ -39,12 +39,11 @@ export async function POST(request: NextRequest) {
   try {
     const [party] = await db.insert(parties).values({
       displayName,
-      email: partyEmailValue,
       saveTheDateToken,
     }).returning({
       id: parties.id,
       displayName: parties.displayName,
-      email: parties.email,
+      saveTheDateRecipientGuestId: parties.saveTheDateRecipientGuestId,
       saveTheDateSentAt: parties.saveTheDateSentAt,
       saveTheDateToken: parties.saveTheDateToken,
       createdAt: parties.createdAt,

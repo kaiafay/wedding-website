@@ -11,7 +11,7 @@ import { relations } from "drizzle-orm";
 export const parties = pgTable("parties", {
   id: serial("id").primaryKey(),
   displayName: text("display_name").notNull(),
-  email: text("email").notNull(),
+  saveTheDateRecipientGuestId: integer("save_the_date_recipient_guest_id"),
   saveTheDateToken: text("save_the_date_token").notNull().unique(),
   saveTheDateSentAt: timestamp("save_the_date_sent_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

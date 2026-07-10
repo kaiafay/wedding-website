@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parties } from "@/lib/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 import { validateSession } from "@/lib/auth";
 import {
@@ -27,24 +27,36 @@ export async function POST(request: NextRequest) {
   const siteUrl = getEmailSiteUrl();
   const from = process.env.RESEND_FROM ?? "onboarding@resend.dev";
 
-  const pending = await db
-    .select()
-    .from(parties)
-    .where(
-      partyId === null
-        ? isNull(parties.saveTheDateSentAt)
-        : and(eq(parties.id, partyId), isNull(parties.saveTheDateSentAt)),
-    );
+  const pending =
+    partyId === null
+      ? await db.query.parties.findMany({
+          where: isNull(parties.saveTheDateSentAt),
+          with: { guests: true },
+        })
+      : await db.query.parties.findMany({
+          where: eq(parties.id, partyId),
+          with: { guests: true },
+        });
 
-  const sendable = pending.filter((party) => party.email && party.saveTheDateToken);
-  const skipped = pending.length - sendable.length;
+  const unsent = pending.filter((party) => party.saveTheDateSentAt === null);
+  const sendable = unsent
+    .map((party) => {
+      const recipient = party.guests.find(
+        (guest) => guest.id === party.saveTheDateRecipientGuestId,
+      );
+      return recipient?.email
+        ? { party, recipientEmail: recipient.email }
+        : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+  const skipped = unsent.length - sendable.length;
 
   if (dry) {
     return NextResponse.json({
-      would_send: sendable.map((party) => ({
+      would_send: sendable.map(({ party, recipientEmail }) => ({
         id: party.id,
         displayName: party.displayName,
-        email: party.email,
+        email: recipientEmail,
       })),
       skipped,
     });
@@ -52,14 +64,14 @@ export async function POST(request: NextRequest) {
 
   const results: { id: number; status: "sent" | "failed" }[] = [];
 
-  for (const party of sendable) {
+  for (const { party, recipientEmail } of sendable) {
     try {
       const link = buildSaveTheDateUrl(siteUrl, party.saveTheDateToken);
       const guestName = party.displayName;
 
       await resend.emails.send({
         from,
-        to: party.email,
+        to: recipientEmail,
         subject: "Save the Date — Kaia & Richard, July 10, 2027",
         html: buildSaveTheDateEmailHtml({
           guestName,

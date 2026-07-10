@@ -32,7 +32,7 @@ type GuestRow = {
 type PartySummary = {
   id: number;
   displayName: string;
-  email: string;
+  saveTheDateRecipientGuestId: number | null;
   saveTheDateSentAt: string | null;
   hasSaveTheDateToken: boolean;
   createdAt: string;
@@ -87,6 +87,12 @@ function formatDate(iso: string | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function getPartyRecipient(party: PartyRow) {
+  return party.guests.find(
+    (guest) => guest.id === party.saveTheDateRecipientGuestId,
+  ) ?? null;
 }
 
 function isTodayOrAfter(dateString: string) {
@@ -226,7 +232,7 @@ function PartyRecipientList({ parties }: { parties: PartyRow[] }) {
             className="font-sans"
             style={{ fontSize: 11, color: "var(--subtle)", marginTop: 2 }}
           >
-            {party.email}
+            {getPartyRecipient(party)?.email ?? "No recipient"}
           </div>
         </div>
       ))}
@@ -272,7 +278,7 @@ export default function AdminDashboard({
   const unsentStdParties = partyList.filter(
     (party) =>
       party.saveTheDateSentAt === null &&
-      party.email !== "" &&
+      Boolean(getPartyRecipient(party)?.email) &&
       party.hasSaveTheDateToken,
   );
   const unsentStdCount = unsentStdParties.length;
@@ -1067,13 +1073,14 @@ export default function AdminDashboard({
               </thead>
               <tbody>
                 {partyList.map((party) => {
+                  const recipient = getPartyRecipient(party);
                   const canSendSaveTheDate =
                     party.saveTheDateSentAt === null &&
-                    party.email !== "" &&
+                    Boolean(recipient?.email) &&
                     party.hasSaveTheDateToken;
                   const saveDateStatusLabel = party.saveTheDateSentAt
                     ? "Date Sent"
-                    : !party.email
+                    : !recipient?.email
                       ? "No Email"
                       : !party.hasSaveTheDateToken
                         ? "No Link"
@@ -1082,7 +1089,7 @@ export default function AdminDashboard({
                     <tr key={party.id}>
                       <td style={cell}>{party.displayName}</td>
                       <td className="adm-col" style={cell}>
-                        {party.email}
+                        {recipient?.email ?? "—"}
                       </td>
                       <td className="adm-col" style={cell}>
                         {party.guests.map((guest) => guest.name ?? "Guest").join(", ")}
@@ -1201,10 +1208,12 @@ export default function AdminDashboard({
               </thead>
               <tbody>
                 {guestList.map((g) => {
+                  const party = partyList.find((p) => p.id === g.party.id);
+                  const recipient = party ? getPartyRecipient(party) : null;
                   const canSendInvite = g.sentAt === null && g.email !== null;
                   const saveDateStatusLabel = g.party.saveTheDateSentAt
                     ? "Date Sent"
-                    : g.party.email === ""
+                    : !recipient?.email
                       ? "No Email"
                       : !g.party.hasSaveTheDateToken
                         ? "No Link"
