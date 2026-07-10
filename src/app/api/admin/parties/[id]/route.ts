@@ -171,3 +171,67 @@ export async function PATCH(
     guests: updatedGuests.map(serializeGuest),
   });
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext<"/api/admin/parties/[id]">,
+) {
+  if (!validateSession(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  const partyId = Number(id);
+  if (!Number.isInteger(partyId)) {
+    return NextResponse.json({ error: "Invalid party id" }, { status: 400 });
+  }
+
+  const existingParty = await db.query.parties.findFirst({
+    where: eq(parties.id, partyId),
+    with: { guests: true },
+  });
+
+  if (!existingParty) {
+    return NextResponse.json({ error: "Party not found" }, { status: 404 });
+  }
+
+  if (existingParty.guests.length <= 1) {
+    return NextResponse.json(
+      { error: "Only grouped parties can be dissolved" },
+      { status: 400 },
+    );
+  }
+
+  const sentRecipient = existingParty.guests.find(
+    (guest) => guest.id === existingParty.saveTheDateRecipientGuestId,
+  );
+  const retainedGuest = sentRecipient ?? existingParty.guests[0];
+  const guestsToSplit = existingParty.guests.filter(
+    (guest) => guest.id !== retainedGuest.id,
+  );
+
+  for (const guest of guestsToSplit) {
+    await createSoloPartyForGuest(guest);
+  }
+
+  await db
+    .update(parties)
+    .set({
+      displayName: retainedGuest.name ?? "Guest",
+      saveTheDateRecipientGuestId: retainedGuest.email ? retainedGuest.id : null,
+      saveTheDateSentAt: sentRecipient ? existingParty.saveTheDateSentAt : null,
+    })
+    .where(eq(parties.id, partyId));
+
+  const updatedGuests = await db.query.guests.findMany({
+    where: inArray(
+      guests.id,
+      existingParty.guests.map((guest) => guest.id),
+    ),
+    with: { party: true, rsvp: true },
+  });
+
+  return NextResponse.json({
+    guests: updatedGuests.map(serializeGuest),
+  });
+}

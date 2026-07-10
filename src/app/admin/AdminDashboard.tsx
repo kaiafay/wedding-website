@@ -605,6 +605,36 @@ export default function AdminDashboard({
     closePartyModal();
   }
 
+  async function handleDissolveParty() {
+    if (partyModalId === null) return;
+    const party = partyList.find((item) => item.id === partyModalId);
+    if (!party || party.guests.length <= 1) return;
+
+    setPartyLoading(true);
+    setPartyError(null);
+    const res = await fetch(`/api/admin/parties/${partyModalId}`, {
+      method: "DELETE",
+    });
+    setPartyLoading(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setPartyError(
+        (data as { error?: string }).error ?? "Failed to dissolve party",
+      );
+      return;
+    }
+    const updatedGuests = (data.guests ?? []) as GuestRow[];
+    const updatedIds = new Set(updatedGuests.map((guest) => guest.id));
+    setGuestList((prev) =>
+      prev.map((guest) =>
+        updatedIds.has(guest.id)
+          ? updatedGuests.find((updated) => updated.id === guest.id) ?? guest
+          : guest,
+      ),
+    );
+    closePartyModal();
+  }
+
   function openEditGuestModal(guest: GuestRow) {
     setEditGuestId(guest.id);
     setEditGuestName(guest.name ?? "");
@@ -1969,9 +1999,33 @@ export default function AdminDashboard({
                 display: "flex",
                 gap: 10,
                 justifyContent: "flex-end",
+                flexWrap: "wrap",
                 marginTop: 22,
               }}
             >
+              {partyModalId !== null &&
+                (partyList.find((party) => party.id === partyModalId)?.guests
+                  .length ?? 0) > 1 && (
+                  <button
+                    onClick={handleDissolveParty}
+                    disabled={partyLoading}
+                    className="font-sans"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      background: "none",
+                      border: "1px solid var(--mauve-light)",
+                      color: "var(--mauve-dark)",
+                      padding: "9px 18px",
+                      cursor: partyLoading ? "default" : "pointer",
+                      opacity: partyLoading ? 0.6 : 1,
+                      marginRight: "auto",
+                    }}
+                  >
+                    Dissolve
+                  </button>
+                )}
               <button
                 onClick={closePartyModal}
                 disabled={partyLoading}
