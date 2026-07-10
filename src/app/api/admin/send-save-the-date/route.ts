@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from,
         to: recipientEmail,
-        subject: "Save the Date — Kaia & Richard, July 10, 2027",
+        subject: "Mark your calendar for July 10, 2027",
         html: buildSaveTheDateEmailHtml({
           guestName,
           link,

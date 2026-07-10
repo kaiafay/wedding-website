@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from,
         to: guest.email!,
-        subject: "You're Invited — Kaia & Richard, July 10th 2027",
+        subject: "Will you be joining us?",
         html: buildInviteEmailHtml({ guestName, note, rsvpUrl, siteUrl }),
         text: buildInviteEmailText({ guestName, note, rsvpUrl }),
       });

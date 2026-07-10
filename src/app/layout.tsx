@@ -56,6 +56,7 @@ export const metadata: Metadata = {
     title: shareTitle,
   },
   icons: {
+    icon: "/icon",
     apple: "/apple-icon",
   },
 };
