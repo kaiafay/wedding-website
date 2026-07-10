@@ -10,27 +10,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { partyDisplayName, partyEmail, guestNames, name, email } = await request.json();
+  const { name, email } = await request.json();
 
-  const displayName = String(partyDisplayName ?? name ?? "").trim();
-  const partyEmailValue = String(partyEmail ?? email ?? "").trim();
-  const names = Array.isArray(guestNames)
-    ? guestNames.map((guestName) => String(guestName).trim()).filter(Boolean)
-    : [String(name ?? "").trim()].filter(Boolean);
+  const guestName = String(name ?? "").trim();
+  const guestEmail = String(email ?? "").trim() || null;
 
-  if (!displayName || !partyEmailValue || names.length === 0) {
+  if (!guestName) {
     return NextResponse.json(
-      { error: "Party name, email, and at least one guest are required" },
+      { error: "Name is required" },
       { status: 400 },
     );
   }
 
-  if (displayName.length > 200 || partyEmailValue.length > 320) {
-    return NextResponse.json({ error: "Party name or email is too long" }, { status: 400 });
+  if (guestName.length > 200) {
+    return NextResponse.json({ error: "Name exceeds 200 characters" }, { status: 400 });
   }
 
-  if (names.some((guestName) => guestName.length > 200)) {
-    return NextResponse.json({ error: "Guest names must be 200 characters or less" }, { status: 400 });
+  if (guestEmail !== null && guestEmail.length > 320) {
+    return NextResponse.json({ error: "Email exceeds 320 characters" }, { status: 400 });
   }
 
   const saveTheDateToken = crypto.randomUUID();
@@ -38,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const [party] = await db.insert(parties).values({
-      displayName,
+      displayName: guestName,
       saveTheDateToken,
     }).returning({
       id: parties.id,
@@ -50,19 +47,29 @@ export async function POST(request: NextRequest) {
     });
     createdPartyId = party.id;
 
-    const createdGuests = await db.insert(guests).values(
-      names.map((guestName) => ({
+    const [guest] = await db.insert(guests).values({
         partyId: party.id,
         name: guestName,
-        email: partyEmailValue,
+        email: guestEmail,
         token: crypto.randomUUID(),
-      })),
-    ).returning();
+    }).returning();
+
+    const serializedParty = guestEmail
+      ? {
+          ...party,
+          saveTheDateRecipientGuestId: guest.id,
+        }
+      : party;
+
+    if (guestEmail) {
+      await db
+        .update(parties)
+        .set({ saveTheDateRecipientGuestId: guest.id })
+        .where(eq(parties.id, party.id));
+    }
 
     return NextResponse.json({
-      guests: createdGuests.map((guest) =>
-        serializeGuest({ ...guest, party, rsvp: null }),
-      ),
+      guest: serializeGuest({ ...guest, party: serializedParty, rsvp: null }),
     });
   } catch (err) {
     if (createdPartyId !== null) {
