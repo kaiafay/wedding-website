@@ -289,10 +289,9 @@ export default function AdminDashboard({
     isTodayOrAfter(BULK_RSVP_INVITE_AVAILABLE_DATE) &&
     unsentRsvpGuests.length > 0;
 
-  // Add party form
-  const [addPartyName, setAddPartyName] = useState("");
-  const [addPartyEmail, setAddPartyEmail] = useState("");
-  const [addGuestNames, setAddGuestNames] = useState("");
+  // Add guest form
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -427,29 +426,20 @@ export default function AdminDashboard({
     e.preventDefault();
     setAddLoading(true);
     setAddError(null);
-    const guestNames = addGuestNames
-      .split(/\r?\n/)
-      .map((guestName) => guestName.trim())
-      .filter(Boolean);
     const res = await fetch("/api/admin/guests/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        partyDisplayName: addPartyName,
-        partyEmail: addPartyEmail,
-        guestNames,
-      }),
+      body: JSON.stringify({ name: addName, email: addEmail }),
     });
     setAddLoading(false);
     if (res.ok) {
       const data = await res.json();
-      setGuestList((prev) => [...prev, ...(data.guests ?? [])]);
-      setAddPartyName("");
-      setAddPartyEmail("");
-      setAddGuestNames("");
+      setGuestList((prev) => [...prev, data.guest]);
+      setAddName("");
+      setAddEmail("");
     } else {
       const data = await res.json();
-      setAddError(data.error ?? "Failed to add party");
+      setAddError(data.error ?? "Failed to add guest");
     }
   }
 
@@ -728,7 +718,7 @@ export default function AdminDashboard({
           </button>
         </div>
 
-        {/* Add Party Form */}
+        {/* Add Guest Form */}
         <div
           style={{
             marginBottom: 40,
@@ -746,7 +736,7 @@ export default function AdminDashboard({
               marginBottom: 16,
             }}
           >
-            Add Party
+            Add Guest
           </div>
           <form
             onSubmit={handleAddGuest}
@@ -767,14 +757,14 @@ export default function AdminDashboard({
                   color: "var(--subtle)",
                 }}
               >
-                Party Name
+                Name
               </label>
               <input
                 type="text"
-                value={addPartyName}
-                onChange={(e) => setAddPartyName(e.target.value)}
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
                 required
-                placeholder="Alice Morgan & Jamie Lee"
+                placeholder="Full name"
                 className="font-sans"
                 style={{
                   fontSize: 13,
@@ -797,13 +787,12 @@ export default function AdminDashboard({
                   color: "var(--subtle)",
                 }}
               >
-                Save-the-date Email
+                Email
               </label>
               <input
                 type="email"
-                value={addPartyEmail}
-                onChange={(e) => setAddPartyEmail(e.target.value)}
-                required
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
                 placeholder="email@example.com"
                 className="font-sans"
                 style={{
@@ -814,37 +803,6 @@ export default function AdminDashboard({
                   background: "var(--white)",
                   outline: "none",
                   width: 220,
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label
-                className="font-sans"
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--subtle)",
-                }}
-              >
-                Guests
-              </label>
-              <textarea
-                value={addGuestNames}
-                onChange={(e) => setAddGuestNames(e.target.value)}
-                required
-                placeholder={"Alice Morgan\nJamie Lee"}
-                className="font-sans"
-                rows={3}
-                style={{
-                  fontSize: 13,
-                  color: "var(--charcoal)",
-                  border: "1px solid var(--rule)",
-                  padding: "8px 12px",
-                  background: "var(--white)",
-                  outline: "none",
-                  width: 240,
-                  resize: "vertical",
                 }}
               />
             </div>
@@ -864,7 +822,7 @@ export default function AdminDashboard({
                 opacity: addLoading ? 0.6 : 1,
               }}
             >
-              {addLoading ? "Adding…" : "Add Party"}
+              {addLoading ? "Adding…" : "Add Guest"}
             </button>
           </form>
           {addError && (
@@ -1022,145 +980,10 @@ export default function AdminDashboard({
             flexWrap: "wrap",
           }}
         >
-          <SummaryCard label="Parties" value={partyList.length} />
           <SummaryCard label="Guests" value={guestList.length} />
           <SummaryCard label="Responded" value={responded.length} />
           <SummaryCard label="Attending" value={attending.length} />
           <SummaryCard label="Not attending" value={notAttending.length} />
-        </div>
-
-        {/* Party table */}
-        <div
-          className="font-sans"
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: "var(--subtle)",
-            marginBottom: 14,
-          }}
-        >
-          Parties ({partyList.length})
-        </div>
-        <div style={{ overflowX: "auto", marginBottom: 48 }}>
-          {partyList.length === 0 ? (
-            <p
-              className="font-sans"
-              style={{
-                fontSize: 13,
-                color: "var(--subtle)",
-                padding: "12px 0",
-              }}
-            >
-              No parties yet.
-            </p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={th}>Party</th>
-                  <th className="adm-col" style={th}>
-                    Email
-                  </th>
-                  <th className="adm-col" style={th}>
-                    Guests
-                  </th>
-                  <th className="adm-col" style={th}>
-                    Save the Date
-                  </th>
-                  <th style={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {partyList.map((party) => {
-                  const recipient = getPartyRecipient(party);
-                  const canSendSaveTheDate =
-                    party.saveTheDateSentAt === null &&
-                    Boolean(recipient?.email) &&
-                    party.hasSaveTheDateToken;
-                  const saveDateStatusLabel = party.saveTheDateSentAt
-                    ? "Date Sent"
-                    : !recipient?.email
-                      ? "No Email"
-                      : !party.hasSaveTheDateToken
-                        ? "No Link"
-                        : "No Date";
-                  return (
-                    <tr key={party.id}>
-                      <td style={cell}>{party.displayName}</td>
-                      <td className="adm-col" style={cell}>
-                        {recipient?.email ?? "—"}
-                      </td>
-                      <td className="adm-col" style={cell}>
-                        {party.guests.map((guest) => guest.name ?? "Guest").join(", ")}
-                      </td>
-                      <td
-                        className="adm-col"
-                        style={{ ...cell, whiteSpace: "nowrap" }}
-                      >
-                        {party.saveTheDateSentAt
-                          ? formatDate(party.saveTheDateSentAt)
-                          : "—"}
-                      </td>
-                      <td style={{ ...cell, minWidth: 120 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            justifyContent: "flex-end",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          {canSendSaveTheDate ? (
-                            <button
-                              onClick={() => handleSendSaveDateToParty(party.id)}
-                              disabled={sendStdPartyId === party.id}
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                background: "none",
-                                border: "1px solid var(--mauve-light)",
-                                color: "var(--mauve-dark)",
-                                padding: "4px 10px",
-                                cursor:
-                                  sendStdPartyId === party.id
-                                    ? "default"
-                                    : "pointer",
-                                opacity: sendStdPartyId === party.id ? 0.6 : 1,
-                              }}
-                            >
-                              {sendStdPartyId === party.id
-                                ? "Sending…"
-                                : "Send Date"}
-                            </button>
-                          ) : (
-                            <span
-                              className="font-sans"
-                              style={{
-                                ...actionControl,
-                                fontSize: 9,
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                color: party.saveTheDateSentAt
-                                  ? "var(--sage)"
-                                  : "var(--subtle)",
-                                padding: "5px 0",
-                              }}
-                            >
-                              {saveDateStatusLabel}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
         </div>
 
         {/* Guest table */}
@@ -1195,6 +1018,9 @@ export default function AdminDashboard({
                   <th style={th}>Name</th>
                   <th className="adm-col" style={th}>
                     Email
+                  </th>
+                  <th className="adm-col" style={th}>
+                    Party
                   </th>
                   <th className="adm-col" style={th}>
                     Save the Date
@@ -1249,6 +1075,11 @@ export default function AdminDashboard({
                       </td>
                       <td className="adm-col" style={cell}>
                         {g.email ?? "—"}
+                      </td>
+                      <td className="adm-col" style={cell}>
+                        {party && party.guests.length > 1
+                          ? party.displayName
+                          : "—"}
                       </td>
                       <td
                         className="adm-col"
