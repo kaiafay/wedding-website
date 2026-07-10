@@ -316,6 +316,22 @@ export default function AdminDashboard({
   // Detail modal
   const [detailGuest, setDetailGuest] = useState<GuestRow | null>(null);
 
+  // Edit guest modal
+  const [editGuestId, setEditGuestId] = useState<number | null>(null);
+  const [editGuestName, setEditGuestName] = useState("");
+  const [editGuestEmail, setEditGuestEmail] = useState("");
+  const [editGuestLoading, setEditGuestLoading] = useState(false);
+  const [editGuestError, setEditGuestError] = useState<string | null>(null);
+
+  // Party create/edit modal
+  const [partyModalOpen, setPartyModalOpen] = useState(false);
+  const [partyModalId, setPartyModalId] = useState<number | null>(null);
+  const [partyName, setPartyName] = useState("");
+  const [partyGuestIds, setPartyGuestIds] = useState<number[]>([]);
+  const [partyRecipientId, setPartyRecipientId] = useState<number | null>(null);
+  const [partyLoading, setPartyLoading] = useState(false);
+  const [partyError, setPartyError] = useState<string | null>(null);
+
   // Send save the dates
   const [sendStdConfirmOpen, setSendStdConfirmOpen] = useState(false);
   const [sendStdLoading, setSendStdLoading] = useState(false);
@@ -515,6 +531,113 @@ export default function AdminDashboard({
 
   async function handleSendSaveDateToParty(partyId: number) {
     await sendSaveDates(partyId);
+  }
+
+  function openCreatePartyModal() {
+    setPartyModalId(null);
+    setPartyName("");
+    setPartyGuestIds([]);
+    setPartyRecipientId(null);
+    setPartyError(null);
+    setPartyModalOpen(true);
+  }
+
+  function openEditPartyModal(party: PartyRow) {
+    setPartyModalId(party.id);
+    setPartyName(party.displayName);
+    setPartyGuestIds(party.guests.map((guest) => guest.id));
+    setPartyRecipientId(party.saveTheDateRecipientGuestId);
+    setPartyError(null);
+    setPartyModalOpen(true);
+  }
+
+  function closePartyModal() {
+    if (partyLoading) return;
+    setPartyModalOpen(false);
+    setPartyModalId(null);
+    setPartyError(null);
+  }
+
+  function togglePartyGuest(guestId: number) {
+    setPartyGuestIds((prev) => {
+      const next = prev.includes(guestId)
+        ? prev.filter((id) => id !== guestId)
+        : [...prev, guestId];
+      if (!next.includes(partyRecipientId ?? -1)) {
+        setPartyRecipientId(null);
+      }
+      return next;
+    });
+  }
+
+  async function handleSaveParty() {
+    setPartyLoading(true);
+    setPartyError(null);
+    const res = await fetch(
+      partyModalId === null
+        ? "/api/admin/parties"
+        : `/api/admin/parties/${partyModalId}`,
+      {
+        method: partyModalId === null ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: partyName,
+          guestIds: partyGuestIds,
+          saveTheDateRecipientGuestId: partyRecipientId,
+        }),
+      },
+    );
+    setPartyLoading(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setPartyError((data as { error?: string }).error ?? "Failed to save party");
+      return;
+    }
+    const updatedGuests = (data.guests ?? []) as GuestRow[];
+    const updatedIds = new Set(updatedGuests.map((guest) => guest.id));
+    setGuestList((prev) =>
+      prev.map((guest) =>
+        updatedIds.has(guest.id)
+          ? updatedGuests.find((updated) => updated.id === guest.id) ?? guest
+          : guest,
+      ),
+    );
+    closePartyModal();
+  }
+
+  function openEditGuestModal(guest: GuestRow) {
+    setEditGuestId(guest.id);
+    setEditGuestName(guest.name ?? "");
+    setEditGuestEmail(guest.email ?? "");
+    setEditGuestError(null);
+  }
+
+  function closeEditGuestModal() {
+    if (editGuestLoading) return;
+    setEditGuestId(null);
+    setEditGuestError(null);
+  }
+
+  async function handleSaveGuest() {
+    if (editGuestId === null) return;
+    setEditGuestLoading(true);
+    setEditGuestError(null);
+    const res = await fetch(`/api/admin/guests/${editGuestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editGuestName, email: editGuestEmail }),
+    });
+    setEditGuestLoading(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setEditGuestError((data as { error?: string }).error ?? "Failed to save guest");
+      return;
+    }
+    const updatedGuest = data.guest as GuestRow;
+    setGuestList((prev) =>
+      prev.map((guest) => (guest.id === updatedGuest.id ? updatedGuest : guest)),
+    );
+    closeEditGuestModal();
   }
 
   async function handleSendInvite() {
@@ -986,18 +1109,127 @@ export default function AdminDashboard({
           <SummaryCard label="Not attending" value={notAttending.length} />
         </div>
 
+        {/* Save-the-date send list */}
+        {unsentStdParties.length > 0 && (
+          <div style={{ marginBottom: 48 }}>
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 14,
+              }}
+            >
+              Save-the-dates ({unsentStdParties.length})
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {unsentStdParties.map((party) => {
+                const recipient = getPartyRecipient(party);
+                const label =
+                  party.guests.length > 1
+                    ? party.displayName
+                    : party.guests[0]?.name ?? party.displayName;
+                return (
+                  <div
+                    key={party.id}
+                    style={{
+                      border: "1px solid var(--rule)",
+                      padding: "12px 14px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div
+                        className="font-sans"
+                        style={{ fontSize: 13, color: "var(--charcoal)" }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        className="font-sans"
+                        style={{
+                          fontSize: 11,
+                          color: "var(--subtle)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {recipient?.email ?? "No email"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSendSaveDateToParty(party.id)}
+                      disabled={sendStdPartyId === party.id || !recipient?.email}
+                      className="font-sans"
+                      style={{
+                        fontSize: 9,
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        background: "none",
+                        border: "1px solid var(--mauve-light)",
+                        color: "var(--mauve-dark)",
+                        padding: "6px 12px",
+                        cursor:
+                          sendStdPartyId === party.id || !recipient?.email
+                            ? "default"
+                            : "pointer",
+                        opacity:
+                          sendStdPartyId === party.id || !recipient?.email
+                            ? 0.6
+                            : 1,
+                      }}
+                    >
+                      {sendStdPartyId === party.id ? "Sending…" : "Send Date"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Guest table */}
         <div
-          className="font-sans"
           style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: "var(--subtle)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
             marginBottom: 14,
           }}
         >
-          Guests ({guestList.length})
+          <div
+            className="font-sans"
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--subtle)",
+            }}
+          >
+            Guests ({guestList.length})
+          </div>
+          <button
+            onClick={openCreatePartyModal}
+            className="font-sans"
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              background: "none",
+              border: "1px solid var(--rule)",
+              color: "var(--subtle)",
+              padding: "7px 14px",
+              cursor: "pointer",
+            }}
+          >
+            Create Party
+          </button>
         </div>
         <div style={{ overflowX: "auto", marginBottom: 48 }}>
           {guestList.length === 0 ? (
@@ -1077,9 +1309,29 @@ export default function AdminDashboard({
                         {g.email ?? "—"}
                       </td>
                       <td className="adm-col" style={cell}>
-                        {party && party.guests.length > 1
-                          ? party.displayName
-                          : "—"}
+                        {party && party.guests.length > 1 ? (
+                          <button
+                            onClick={() => openEditPartyModal(party)}
+                            className="font-sans"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              margin: 0,
+                              cursor: "pointer",
+                              fontSize: 13,
+                              color: "var(--charcoal)",
+                              textAlign: "left",
+                              textDecoration: "underline",
+                              textDecorationColor: "var(--rule)",
+                              textUnderlineOffset: "3px",
+                            }}
+                          >
+                            {party.displayName}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td
                         className="adm-col"
@@ -1136,6 +1388,24 @@ export default function AdminDashboard({
                           >
                             {saveDateStatusLabel}
                           </span>
+                          <button
+                            onClick={() => openEditGuestModal(g)}
+                            className="font-sans"
+                            style={{
+                              ...actionControl,
+                              width: 68,
+                              fontSize: 9,
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              background: "none",
+                              border: "1px solid var(--rule)",
+                              color: "var(--subtle)",
+                              padding: "4px 10px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Edit
+                          </button>
                           {canSendInvite ? (
                             <button
                               onClick={() => openInviteModal(g.id)}
@@ -1496,6 +1766,361 @@ export default function AdminDashboard({
           )}
         </div>
       </div>
+
+      {/* Edit Guest Modal */}
+      {editGuestId !== null && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeEditGuestModal();
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(35, 32, 30, 0.28)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            zIndex: 60,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              background: "var(--white)",
+              border: "1px solid var(--rule)",
+              padding: "28px 32px",
+            }}
+          >
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 20,
+              }}
+            >
+              Edit Guest
+            </div>
+            <div style={{ display: "grid", gap: 14 }}>
+              <input
+                value={editGuestName}
+                onChange={(e) => setEditGuestName(e.target.value)}
+                placeholder="Full name"
+                className="font-sans"
+                style={{
+                  fontSize: 13,
+                  color: "var(--charcoal)",
+                  border: "1px solid var(--rule)",
+                  padding: "9px 12px",
+                  background: "var(--white)",
+                  outline: "none",
+                }}
+              />
+              <input
+                type="email"
+                value={editGuestEmail}
+                onChange={(e) => setEditGuestEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="font-sans"
+                style={{
+                  fontSize: 13,
+                  color: "var(--charcoal)",
+                  border: "1px solid var(--rule)",
+                  padding: "9px 12px",
+                  background: "var(--white)",
+                  outline: "none",
+                }}
+              />
+            </div>
+            {editGuestError && (
+              <p
+                className="font-sans"
+                style={{
+                  fontSize: 12,
+                  color: "var(--mauve-dark)",
+                  marginTop: 14,
+                }}
+              >
+                {editGuestError}
+              </p>
+            )}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 22,
+              }}
+            >
+              <button
+                onClick={closeEditGuestModal}
+                disabled={editGuestLoading}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "none",
+                  border: "1px solid var(--rule)",
+                  color: "var(--subtle)",
+                  padding: "9px 18px",
+                  cursor: editGuestLoading ? "default" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveGuest}
+                disabled={editGuestLoading || !editGuestName.trim()}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "var(--charcoal)",
+                  color: "var(--white)",
+                  border: "none",
+                  padding: "9px 18px",
+                  cursor:
+                    editGuestLoading || !editGuestName.trim()
+                      ? "default"
+                      : "pointer",
+                  opacity: editGuestLoading || !editGuestName.trim() ? 0.6 : 1,
+                }}
+              >
+                {editGuestLoading ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Party Modal */}
+      {partyModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePartyModal();
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(35, 32, 30, 0.28)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            zIndex: 60,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 560,
+              maxHeight: "82vh",
+              overflowY: "auto",
+              background: "var(--white)",
+              border: "1px solid var(--rule)",
+              padding: "28px 32px",
+            }}
+          >
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 20,
+              }}
+            >
+              {partyModalId === null ? "Create Party" : "Edit Party"}
+            </div>
+            <input
+              value={partyName}
+              onChange={(e) => setPartyName(e.target.value)}
+              placeholder="Party name"
+              className="font-sans"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                fontSize: 13,
+                color: "var(--charcoal)",
+                border: "1px solid var(--rule)",
+                padding: "9px 12px",
+                background: "var(--white)",
+                outline: "none",
+                marginBottom: 18,
+              }}
+            />
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 8,
+              }}
+            >
+              Guests
+            </div>
+            <div
+              style={{
+                border: "1px solid var(--rule)",
+                maxHeight: 220,
+                overflowY: "auto",
+                marginBottom: 18,
+              }}
+            >
+              {guestList.map((guest) => (
+                <label
+                  key={guest.id}
+                  className="font-sans"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "9px 12px",
+                    borderBottom: "1px solid var(--rule)",
+                    fontSize: 13,
+                    color: "var(--charcoal)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={partyGuestIds.includes(guest.id)}
+                    onChange={() => togglePartyGuest(guest.id)}
+                  />
+                  <span>
+                    {guest.name ?? "Guest"}
+                    {guest.email ? ` · ${guest.email}` : " · No email"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div
+              className="font-sans"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--subtle)",
+                marginBottom: 8,
+              }}
+            >
+              Save-the-date recipient
+            </div>
+            <select
+              value={partyRecipientId ?? ""}
+              onChange={(e) =>
+                setPartyRecipientId(e.target.value ? Number(e.target.value) : null)
+              }
+              className="font-sans"
+              style={{
+                width: "100%",
+                fontSize: 13,
+                color: "var(--charcoal)",
+                border: "1px solid var(--rule)",
+                padding: "9px 12px",
+                background: "var(--white)",
+                outline: "none",
+              }}
+            >
+              <option value="">Select recipient</option>
+              {guestList
+                .filter((guest) => partyGuestIds.includes(guest.id) && guest.email)
+                .map((guest) => (
+                  <option key={guest.id} value={guest.id}>
+                    {guest.name ?? "Guest"} · {guest.email}
+                  </option>
+                ))}
+            </select>
+            {partyError && (
+              <p
+                className="font-sans"
+                style={{
+                  fontSize: 12,
+                  color: "var(--mauve-dark)",
+                  marginTop: 14,
+                }}
+              >
+                {partyError}
+              </p>
+            )}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 22,
+              }}
+            >
+              <button
+                onClick={closePartyModal}
+                disabled={partyLoading}
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "none",
+                  border: "1px solid var(--rule)",
+                  color: "var(--subtle)",
+                  padding: "9px 18px",
+                  cursor: partyLoading ? "default" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveParty}
+                disabled={
+                  partyLoading ||
+                  !partyName.trim() ||
+                  (partyModalId === null
+                    ? partyGuestIds.length < 2
+                    : partyGuestIds.length === 0) ||
+                  partyRecipientId === null
+                }
+                className="font-sans"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  background: "var(--charcoal)",
+                  color: "var(--white)",
+                  border: "none",
+                  padding: "9px 18px",
+                  cursor:
+                    partyLoading ||
+                    !partyName.trim() ||
+                    (partyModalId === null
+                      ? partyGuestIds.length < 2
+                      : partyGuestIds.length === 0) ||
+                    partyRecipientId === null
+                      ? "default"
+                      : "pointer",
+                  opacity:
+                    partyLoading ||
+                    !partyName.trim() ||
+                    (partyModalId === null
+                      ? partyGuestIds.length < 2
+                      : partyGuestIds.length === 0) ||
+                    partyRecipientId === null
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {partyLoading ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {detailGuest !== null &&

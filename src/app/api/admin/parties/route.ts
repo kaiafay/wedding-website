@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
   await normalizeOldParties(oldPartyIds);
 
   const updatedGuests = await db.query.guests.findMany({
-    where: inArray(guests.id, guestIds),
     with: { party: true, rsvp: true },
   });
 
