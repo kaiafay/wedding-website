@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   const allGuests = await db.query.guests.findMany({
-    with: { rsvp: true },
+    with: { party: true, rsvp: true },
     orderBy: (g, { asc }) => [asc(g.createdAt)],
   });
 
