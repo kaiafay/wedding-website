@@ -27,7 +27,7 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
 });
 
-const siteTitle = "Kaia & Richard — July 10, 2027";
+const siteTitle = "Kaia & Richard | July 10, 2027";
 const shareTitle = "Kaia & Richard";
 const shareDescription =
   "Saturday, July 10, 2027 · The Vasak Estate, Bellingham, WA";

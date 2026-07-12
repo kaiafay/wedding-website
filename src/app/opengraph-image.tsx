@@ -34,17 +34,23 @@ export default async function OpenGraphImage() {
         >
           Together with their families
         </p>
-        <p
+        <div
           style={{
             margin: "24px 0 0",
             fontFamily: "Great Vibes",
             fontSize: 112,
             color: "#f8f8f7",
             lineHeight: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: "translateX(-24px)",
           }}
         >
-          Kaia &amp; Richard
-        </p>
+          <span>Kaia</span>
+          <span style={{ color: "#9B7E97", margin: "0 20px" }}>&amp;</span>
+          <span>Richard</span>
+        </div>
         <div
           style={{
             width: 48,
