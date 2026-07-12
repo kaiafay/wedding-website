@@ -48,7 +48,10 @@ export async function POST(request: NextRequest) {
   const message = String(body.message ?? "").trim();
 
   if (!isValidPassphrase(passphrase)) {
-    return NextResponse.json({ error: "Invalid passphrase" }, { status: 403 });
+    return NextResponse.json(
+      { error: "That passphrase doesn't look right." },
+      { status: 403 },
+    );
   }
 
   if (!name || name.length > WISH_NAME_MAX) {

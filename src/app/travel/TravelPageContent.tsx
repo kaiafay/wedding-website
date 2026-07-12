@@ -7,7 +7,7 @@ const EASE: [number, number, number, number] = [0.25, 0, 0.2, 1];
 
 const hotels = [
   {
-    name: "Super 8 by Wyndham Bellingham Airport",
+    name: "Super 8",
     distance: "In Ferndale — closest to the venue",
     note: "Free breakfast, parking, and an indoor pool.",
     website: "https://www.wyndhamhotels.com/super-8/ferndale-washington/super-8-bellingham-airport-ferndale/overview",
@@ -15,12 +15,12 @@ const hotels = [
     tel: "tel:+13603848881",
   },
   {
-    name: "La Quinta Inn & Suites Bellingham",
+    name: "La Quinta Inn & Suites",
     distance: "~5 miles from the venue",
     note: "Free breakfast, pet-friendly, comfortable and reliable.",
     website: "https://www.wyndhamhotels.com/laquinta/bellingham-washington/la-quinta-bellingham/overview",
-    phone: "(360) 738-7088",
-    tel: "tel:+13607387088",
+    phone: "(360) 747-7685",
+    tel: "tel:+13607477685",
   },
   {
     name: "Hotel Bellwether",
@@ -34,12 +34,12 @@ const hotels = [
 
 const restaurants = [
   {
-    name: "Mallard's Ice Cream",
-    desc: "A Bellingham institution. Made in-house with rotating seasonal flavors — don't skip it.",
+    name: "Mallard Ice Cream",
+    desc: "A local ice cream shop known for inventive flavors made in small batches. Don't skip it.",
   },
   {
-    name: "Fiamma Burger & Pizza",
-    desc: "Wood-fired Neapolitan pizza in downtown Bellingham. Our go-to for a casual dinner out.",
+    name: "Fiamma Pizza",
+    desc: "Downtown pizza with creative specials and plenty of reliable favorites. Our go-to for a casual dinner out.",
   },
   {
     name: "Chihuahua Mexican Restaurant",
@@ -50,11 +50,11 @@ const restaurants = [
 const activities = [
   {
     name: "Fairhaven Historic District",
-    desc: "A walkable Victorian neighborhood south of downtown. Stop in at Fairhaven Poke for lunch and Village Books, one of the best independent bookstores in the state.",
+    desc: "A walkable neighborhood south of downtown, known for its historic brick buildings. Stop in at Fairhaven Poke for lunch and Village Books, one of the best independent bookstores in the state.",
   },
   {
     name: "Larrabee State Park",
-    desc: "Washington's oldest state park, where old-growth forest meets saltwater. Short trails with views out to the San Juan Islands.",
+    desc: "Washington's first state park, where forest meets saltwater. Short trails with views out to the San Juan Islands.",
   },
   {
     name: "Mount Baker",
@@ -140,7 +140,7 @@ export default function TravelPageContent() {
               maxWidth: 560,
             }}
           >
-            Bellingham is a beautiful corner of the Pacific Northwest, tucked between the mountains and the bay. Stunning scenery, easy waterfront walks, and a food scene worth exploring. Here&apos;s everything you need to plan your trip.
+            Bellingham sits between the mountains and the bay, with waterfront walks, plenty of good food, and no shortage of ways to spend a free afternoon. Here are a few places worth knowing about while you&apos;re in town.
           </motion.p>
         </div>
       </section>
@@ -181,7 +181,7 @@ export default function TravelPageContent() {
                   Seattle–Tacoma (SEA)
                 </p>
                 <p className="font-sans" style={{ fontSize: 13, fontWeight: 300, color: "var(--subtle)", lineHeight: 1.7 }}>
-                  About 1.5–2 hours south via I-5. Worth considering if you need more flight options or a better fare.
+                  About 1.5–2 hours south via I-5, depending on traffic. Worth considering if you need more flight options or a better fare.
                 </p>
               </div>
             </div>

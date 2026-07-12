@@ -12,17 +12,17 @@ const entries = [
   {
     label: "May 2023",
     title: "The DM",
-    body: "Richard slid into Kaia's Instagram DMs. She actually responded. The rest, as they say, is history. Or at least a very long text thread.",
+    body: "Rich slid into Kaia's Instagram DMs. She actually responded. The rest, as they say, is history. Or at least a very long text thread.",
   },
   {
     label: "Us, Actually",
     title: "Black Cat & Golden Retriever",
-    body: "Call it golden retriever energy and black cat energy if you want. Mostly it’s two people who like quiet nights, early gym mornings, and each other’s company more than they admit.",
+    body: "Call it golden retriever and black cat energy if you want. Mostly it's two people who like quiet nights, early gym mornings, and a healthy amount of roasting.",
   },
   {
     label: "November 2025",
     title: "The Hike",
-    body: "On a trail at one of their favorite spots, Richard got down on one knee. It was public enough to be a moment, private enough to be theirs.",
+    body: "On a trail at one of their favorite spots, Rich got down on one knee. Kaia said yes, and the hike became a favorite for a whole new reason.",
   },
 ];
 
@@ -105,7 +105,10 @@ export default function OurStorySection() {
           transform: none;
         }
       `}</style>
-      <section id="story" style={{ background: "var(--white)", padding: "88px 0" }}>
+      <section
+        id="story"
+        style={{ background: "var(--white)", padding: "88px 0" }}
+      >
         <div
           className="story-inner"
           style={{ maxWidth: 900, margin: "0 auto", padding: "0 48px" }}

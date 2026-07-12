@@ -7,7 +7,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 const faqs = [
   {
     q: "What's the dress code?",
-    a: "We’re calling it dressy casual, which is everyone’s least favorite phrase, but you know the drill: look nice, skip the jeans.",
+    a: "We're calling it dressy casual, which is everyone's least favorite phrase, but you know the drill. Look nice, skip the jeans.",
   },
   {
     q: "Where is the venue and where do I park?",
@@ -15,11 +15,11 @@ const faqs = [
   },
   {
     q: "Can I bring a plus-one?",
-    a: "Your invitation will indicate whether a guest is included. If it’s not on your invite, we’re sorry. We’re working with limited space and an unlimited love for you.",
+    a: "Your invitation will indicate whether a guest is included. If it's not on your invite, we're sorry. We're working with limited space and an unlimited love for you.",
   },
   {
     q: "Are kids welcome?",
-    a: "Please plan for adults only. Nothing against your kids, we're just keeping the headcount small and the guest list grown-up.",
+    a: "Please plan for adults only. We love your kids, but we're keeping the headcount small and the guest list grown-up.",
   },
   {
     q: "Where are you registered?",
@@ -27,7 +27,7 @@ const faqs = [
   },
   {
     q: "What if I cry?",
-    a: "You’ll fit right in. Tissues will be provided. Waterproof mascara is on you.",
+    a: "You'll fit right in. Tissues will be provided. Waterproof mascara is on you.",
   },
 ];
 

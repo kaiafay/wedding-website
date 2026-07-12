@@ -4,7 +4,7 @@ const schedule = [
   {
     time: "2:00 pm",
     event: "Ceremony",
-    detail: "The part where\nit becomes official.",
+    detail: "An exchange of vows,\nwith rings to make it official.",
   },
   {
     time: "3:00 pm",

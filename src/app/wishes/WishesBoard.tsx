@@ -428,7 +428,11 @@ export default function WishesBoard({
                         marginTop: 0,
                       }}
                     >
-                      {WISH_MESSAGE_MAX - message.length} characters left
+                      {WISH_MESSAGE_MAX - message.length}{" "}
+                      {WISH_MESSAGE_MAX - message.length === 1
+                        ? "character"
+                        : "characters"}{" "}
+                      left
                     </p>
                   )}
 
