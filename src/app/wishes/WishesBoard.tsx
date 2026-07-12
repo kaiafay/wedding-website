@@ -255,7 +255,7 @@ export default function WishesBoard({
               }}
             >
               A little wall of love from our people near and far. You&apos;ll need
-              the passphrase to leave a note — reach out if you need it.
+              the passphrase to leave a note — reach out if you don&apos;t have it.
             </motion.p>
           </div>
 

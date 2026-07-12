@@ -9,7 +9,7 @@ const hotels = [
   {
     name: "Super 8",
     distance: "In Ferndale — closest to the venue",
-    note: "Free breakfast, parking, and an indoor pool.",
+    note: "Free breakfast and an indoor pool.",
     website: "https://www.wyndhamhotels.com/super-8/ferndale-washington/super-8-bellingham-airport-ferndale/overview",
     phone: "(360) 384-8881",
     tel: "tel:+13603848881",
@@ -17,7 +17,7 @@ const hotels = [
   {
     name: "La Quinta Inn & Suites",
     distance: "~5 miles from the venue",
-    note: "Free breakfast, pet-friendly, comfortable and reliable.",
+    note: "Pet-friendly with free parking.",
     website: "https://www.wyndhamhotels.com/laquinta/bellingham-washington/la-quinta-bellingham/overview",
     phone: "(360) 747-7685",
     tel: "tel:+13607477685",
@@ -25,7 +25,7 @@ const hotels = [
   {
     name: "Hotel Bellwether",
     distance: "~10 miles — Bellingham waterfront",
-    note: "Boutique hotel on the bay with water views.",
+    note: "Boutique accommodations with waterfront views.",
     website: "https://www.hotelbellwether.com",
     phone: "(360) 392-3100",
     tel: "tel:+13603923100",
@@ -43,14 +43,14 @@ const restaurants = [
   },
   {
     name: "Chihuahua Mexican Restaurant",
-    desc: "Our favorite Mexican spot, right in Ferndale. Unpretentious and really good — worth a stop while you're in town.",
+    desc: "Our favorite Mexican spot, right in Ferndale. Casual and consistently good — worth a stop while you're in town.",
   },
 ];
 
 const activities = [
   {
     name: "Fairhaven Historic District",
-    desc: "A walkable neighborhood south of downtown, known for its historic brick buildings. Stop in at Fairhaven Poke for lunch and Village Books, one of the best independent bookstores in the state.",
+    desc: "A charming historic neighborhood south of downtown. Stop at Fairhaven Poke for lunch and Village Books for a leisurely browse.",
   },
   {
     name: "Larrabee State Park",
@@ -58,7 +58,7 @@ const activities = [
   },
   {
     name: "Mount Baker",
-    desc: "An hour east into the Cascades, where Kaia grew up skiing. The drive to Artist Point is worth it even if you never leave the car.",
+    desc: "A couple of hours east into the Cascades, where Kaia grew up skiing. The drive to Artist Point is worth it even if you never leave the car.",
   },
 ];
 

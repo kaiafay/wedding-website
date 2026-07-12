@@ -17,7 +17,7 @@ const entries = [
   {
     label: "Us, Actually",
     title: "Black Cat & Golden Retriever",
-    body: "Call it golden retriever and black cat energy if you want. Mostly it's two people who like quiet nights, early gym mornings, and a healthy amount of roasting.",
+    body: "Call it golden retriever and black cat energy if you want. Mostly it's two people who enjoy quiet nights, early gym mornings, and a healthy amount of roasting.",
   },
   {
     label: "November 2025",
